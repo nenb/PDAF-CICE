@@ -106,8 +106,9 @@ db_flags:
 # build rules: MACFILE, cmd-line, or env vars must provide the needed macros
 #-------------------------------------------------------------------------------
 
-$(EXEC): $(OBJS)
-	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
+$(EXEC): libpdaf-d.a \
+	 $(OBJS)
+	 $(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(ULIBS) $(SLIBS)
 
 .c.o:
 	cc $(CFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $<
@@ -120,10 +121,16 @@ $(EXEC): $(OBJS)
 	$(CPP) $(CPPFLAGS) $(CPPDEFS) $(INCS) $(INCLDIR) $< > $*.f90
 	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(INCS) $(INCLDIR) $*.f90  
 
+libpdaf-d.a:
+	@echo "++++++ Generate Filter library ++++++"
+	@cd $(PDAF_MK); make;
+
 mostlyclean:
 	$(RM) -f *.f *.f90 
 
 clean:
+	@echo "++++++ Clean PDAF ++++++"
+	@cd $(PDAF_MK); make clean;
 	$(RM) -f *.f *.f90 *.d *.mod *.o
 #	$(RM) -f *.f *.f90 *.d *.$(MOD_SUFFIX) $(OBJS)
 

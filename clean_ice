@@ -6,6 +6,12 @@ setenv SYSTEM_USERDIR $PWD
 #setenv SRCDIR $HOME/cice.v4.0/cice
 setenv SRCDIR $PWD 
 
+#PDAF Macro file
+setenv PDAF_ARCH linux_gfortran_mpich
+
+#Location of PDAF make file
+setenv PDAF_MK $SRCDIR/pdaf/src
+
 setenv CBLD   $SRCDIR/bld
 setenv EXEDIR $SYSTEM_USERDIR/rundir
 setenv OBJDIR $EXEDIR/compile

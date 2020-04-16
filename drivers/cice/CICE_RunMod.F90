@@ -61,6 +61,9 @@
 #endif
 
          call ice_step
+#ifdef USE_PDAF
+         call assimilate_pdaf()
+#endif
 
          istep  = istep  + 1    ! update time step counters
          istep1 = istep1 + 1

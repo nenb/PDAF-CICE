@@ -41,8 +41,28 @@
       use CICE_InitMod
       use CICE_RunMod
       use CICE_FinalMod
+#ifdef USE_PDAF
+      use mod_parallel_pdaf, &
+           ONLY: init_parallel,screen_parallel,ens_test_parallel
+#endif
 
       implicit none
+
+
+#ifdef USE_PDAF
+      !-----------------------------------------------------------------
+      ! Initialize PDAF parallelization
+      !-----------------------------------------------------------------
+
+      ! General initialization of MPI environment
+      call init_parallel()
+
+      ! Initalize variables for PDAF parallelization.
+      ! We define ensemble size later in init_pdaf. Hence we switch
+      ! ensemble size test off (=0). See PDAF docs for further details.
+      ens_test_parallel=0
+      call init_parallel_pdaf(ens_test_parallel,screen_parallel)
+#endif
 
       !-----------------------------------------------------------------
       ! Initialize CICE
@@ -50,17 +70,35 @@
 
       call CICE_Initialize
 
+#ifdef USE_PDAF
+      !-----------------------------------------------------------------
+      ! Initialize PDAF
+      !-----------------------------------------------------------------
+
+      ! CICE namelist variable atm_data_dir overwritten inside init_pdaf
+      call init_pdaf()
+#endif
+
       !-----------------------------------------------------------------
       ! Run CICE
       !-----------------------------------------------------------------
 
+      ! PDAF assimilation step called from inside CICE_Run
       call CICE_Run
 
       !-----------------------------------------------------------------
-      ! Finalize CICE 
+      ! Finalize CICE
       !-----------------------------------------------------------------
 
       call CICE_Finalize
+
+#ifdef USE_PDAF
+      !------------------------------------------------------------------
+      ! Finalise PDAF
+      !------------------------------------------------------------------
+
+      call finalize_pdaf()
+#endif
 
       end program icemodel
 

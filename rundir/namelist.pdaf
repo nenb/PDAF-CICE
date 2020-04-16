@@ -1,0 +1,23 @@
+&tasks_nml
+ tasks=2/
+
+&pdaf_nml
+! Filter choice:
+ istate_fname='/home/users/xp904495/Nick/iced.2008-01-01-00000',
+ filtertype=5,
+ subtype=0,
+ dim_ens=2,
+ delt_obs=24,
+ screen=2,
+ incremental=0
+ type_forget=0,
+ forget=0,
+ local_range=1.0e5
+ locweight=0,
+ srange=1.0e5,
+ rms_obs=0.5,
+ type_trans=0,
+ type_sqrt=0,
+ covartype=1,
+ rank_analysis_enkf=0
+/
