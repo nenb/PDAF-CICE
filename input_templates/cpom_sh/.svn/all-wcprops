@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/CICE/!svn/ver/903/branches/ucl/cice/input_templates/cpom_sh
+END
+ice.restart_file
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/CICE/!svn/ver/773/branches/ucl/cice/input_templates/cpom_sh/ice.restart_file
+END
+grid
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/CICE/!svn/ver/773/branches/ucl/cice/input_templates/cpom_sh/grid
+END
+ice_in
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/CICE/!svn/ver/903/branches/ucl/cice/input_templates/cpom_sh/ice_in
+END
+kmt
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/CICE/!svn/ver/773/branches/ucl/cice/input_templates/cpom_sh/kmt
+END

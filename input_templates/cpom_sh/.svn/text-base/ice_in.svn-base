@@ -1,0 +1,378 @@
+&setup_nml
+    days_per_year  = 365
+  , use_leap_years = .false.
+  , year_init      = 1980 
+  , istep0         = 0
+  , dt             = 3600.0
+  , npt            = 280320
+  , ndtd           = 1
+  , runtype        = 'initial'
+  , ice_ic         = 'default'
+  , restart        = .false.
+  , restart_ext    = .false.
+  , use_restart_time = .true.
+  , restart_format = 'nc'
+  , lcdf64         = .false.
+  , restart_dir    = './restart/'
+  , restart_file   = 'iced'
+  , pointer_file   = './restart/ice.restart_file'
+  , dumpfreq       = 'm'
+  , dumpfreq_n     = 1
+  , dump_last      = .false.
+  , bfbflag        = .false.
+  , diagfreq       = 24
+  , diag_type      = 'stdout'
+  , diag_file      = 'ice_diag.d'
+  , print_global   = .true.
+  , print_points   = .false.
+  , latpnt(1)      =  71.35
+  , lonpnt(1)      = -156.5
+  , latpnt(2)      =  71.35
+  , lonpnt(2)      = -156.5
+  , dbug           = .true.
+  , histfreq       = '1','h','d','m','y'
+  , histfreq_n     =  1 , 1 , 1 , 1 , 1
+  , hist_avg       = .true.
+  , history_dir    = './history/'
+  , history_file   = 'iceh'
+  , write_ic       = .true.
+  , incond_dir     = './history/'
+  , incond_file    = 'iceh_ic'
+/
+
+&grid_nml
+    grid_format  = 'bin'
+  , grid_type    = 'cpom_grid'
+  , grid_file    = 'grid'
+  , kmt_file     = 'kmt'
+  , gridcpl_file = 'unknown_gridcpl_file'
+  , kcatbound    = 0
+/
+
+&domain_nml
+    nprocs = 1
+  , processor_shape   = 'square-ice'
+  , distribution_type = 'cartesian'
+  , distribution_wght = 'latitude'
+  , ew_boundary_type  = 'open'
+  , ns_boundary_type  = 'open'
+  , maskhalo_dyn      = .false.
+  , maskhalo_remap    = .false.
+  , maskhalo_bound    = .false.
+/
+
+&tracer_nml
+    tr_iage      = .false.
+  , restart_age  = .false.
+  , tr_FY        = .false.
+  , restart_FY   = .false.
+  , tr_lvl       = .false.
+  , restart_lvl  = .false.
+  , tr_pond_cesm = .false.
+  , restart_pond_cesm = .false.
+  , tr_pond_topo = .false.
+  , restart_pond_topo = .false.
+  , tr_pond_lvl  = .false.
+  , restart_pond_lvl  = .false.
+  , tr_aero      = .false.
+  , restart_aero = .false.
+/
+
+&thermo_nml
+    kitd              = 1
+  , ktherm            = 1
+  , conduct           = 'MU71'
+  , a_rapid_mode      =  0.5e-3
+  , Rac_rapid_mode    =    10.0
+  , aspect_rapid_mode =     1.0
+  , dSdt_slow_mode    = -5.0e-8
+  , phi_c_slow_mode   =    0.05
+  , phi_i_mushy       =    0.85
+/
+
+&dynamics_nml
+    kdyn            = 1
+  , ndte            = 120
+  , revised_evp     = .false.
+  , advection       = 'remap'
+  , kstrength       = 1
+  , krdg_partic     = 1
+  , krdg_redist     = 1
+  , mu_rdg          = 4
+/
+
+&shortwave_nml
+    shortwave       = 'dEdd'
+  , albedo_type     = 'default'
+  , albicev         = 0.78
+  , albicei         = 0.36
+  , albsnowv        = 0.98
+  , albsnowi        = 0.70 
+  , ahmax           = 0.3
+  , R_ice           = 0.
+  , R_pnd           = 0.
+  , R_snw           = 1.5
+  , dT_mlt          = 1.5
+  , rsnw_mlt        = 1500.
+/
+
+&ponds_nml
+    hp1             = 0.01
+  , hs0             = 0.
+  , hs1             = 0.03
+  , dpscale         = 1.e-3
+  , frzpnd          = 'hlid'
+  , rfracmin        = 0.15
+  , rfracmax        = 1.
+  , pndaspect       = 0.8
+/
+
+&zbgc_nml
+    tr_brine        = .false.
+  , restart_hbrine  = .false.
+  , skl_bgc         = .false.
+  , bgc_flux_type   = 'Jin2006'
+  , restart_bgc     = .false.
+  , restore_bgc     = .false.
+  , bgc_data_dir    = 'unknown_bgc_data_dir'
+  , sil_data_type   = 'default'
+  , nit_data_type   = 'default'
+  , tr_bgc_C_sk     = .false.
+  , tr_bgc_chl_sk   = .false.
+  , tr_bgc_Am_sk    = .false.
+  , tr_bgc_Sil_sk   = .false.
+  , tr_bgc_DMSPp_sk = .false.
+  , tr_bgc_DMSPd_sk = .false.
+  , tr_bgc_DMS_sk   = .false.
+  , phi_snow        = 0.5
+/
+
+&forcing_nml
+    formdrag        = .true.
+  , atmbndy         = 'default'
+  , fyear_init      = 1980
+  , ycycle          = 32
+  , atm_data_format = 'nc'
+  , atm_data_type   = 'cpom'
+  , atm_data_dir    = '/export/cloud/cpom/xp904495/ERA-Interim/data_shemi/'
+  , calc_strair     = .true.
+  , calc_Tsfc       = .true.
+  , highfreq        = .false.
+  , natmiter        = 5
+  , precip_units    = 'mm_per_sec'
+  , ustar_min       = 0.0005
+  , update_ocn_f    = .false.
+  , oceanmixed_ice  = .true.
+  , ocn_data_format = 'nc'
+  , sss_data_type   = 'clim'
+  , sst_data_type   = 'clim'
+  , qdp_data_type   = 'default'
+  , uwat_data_type   = 'clim'
+  , ocn_data_dir    = '/export/cloud/cpom/xp904495/Ocean_SHemi/'
+  , oceanmixed_file = 'unknown_oceanmixed_file'
+  , restore_sst     = .true.
+  , trestore        =  20
+  , restore_ice     = .false.
+/
+
+&icefields_nml
+    f_tmask        = .true.
+  , f_blkmask      = .true.
+  , f_tarea        = .true.
+  , f_uarea        = .true.
+  , f_dxt          = .false.
+  , f_dyt          = .false.
+  , f_dxu          = .false.
+  , f_dyu          = .false.
+  , f_HTN          = .false.
+  , f_HTE          = .false.
+  , f_ANGLE        = .true.
+  , f_ANGLET       = .true.
+  , f_NCAT         = .true.
+  , f_VGRDi        = .false.
+  , f_VGRDs        = .false.
+  , f_VGRDb        = .false.
+  , f_bounds       = .false.
+  , f_aice         = 'dm'
+  , f_hi           = 'dm'
+  , f_hs           = 'dm'
+  , f_Tsfc         = 'dm'
+  , f_sice         = 'dm'
+  , f_uvel         = 'dm'
+  , f_vvel         = 'dm'
+  , f_fswdn        = 'dm'
+  , f_flwdn        = 'dm'
+  , f_snow         = 'x'
+  , f_snow_ai      = 'dm'
+  , f_rain         = 'x'
+  , f_rain_ai      = 'dm'
+  , f_sst          = 'dm'
+  , f_sss          = 'dm'
+  , f_uocn         = 'dm'
+  , f_vocn         = 'dm'
+  , f_frzmlt       = 'dm'
+  , f_fswfac       = 'dm'
+  , f_fswabs       = 'x'
+  , f_fswabs_ai    = 'dm'
+  , f_albsni       = 'dm'
+  , f_alvdr        = 'x'
+  , f_alidr        = 'x'
+  , f_albice       = 'x'
+  , f_albsno       = 'x'
+  , f_albpnd       = 'x'
+  , f_coszen       = 'x'
+  , f_flat         = 'x'
+  , f_flat_ai      = 'dm'
+  , f_fsens        = 'x'
+  , f_fsens_ai     = 'dm'
+  , f_flwup        = 'x'
+  , f_flwup_ai     = 'dm'
+  , f_evap         = 'x'
+  , f_evap_ai      = 'dm'
+  , f_Tair         = 'dm'
+  , f_Tref         = 'x'
+  , f_Qref         = 'x'
+  , f_congel       = 'dm'
+  , f_frazil       = 'dm'
+  , f_snoice       = 'dm'
+  , f_dsnow        = 'x'
+  , f_melts        = 'dm'
+  , f_meltt        = 'dm'
+  , f_meltb        = 'dm'
+  , f_meltl        = 'dm'
+  , f_fresh        = 'x'
+  , f_fresh_ai     = 'dm'
+  , f_fsalt        = 'x'
+  , f_fsalt_ai     = 'dm'
+  , f_fhocn        = 'x'
+  , f_fhocn_ai     = 'dm'
+  , f_fswthru      = 'x'
+  , f_fswthru_ai   = 'dm'
+  , f_fsurf_ai     = 'x'
+  , f_fcondtop_ai  = 'x'
+  , f_fmeltt_ai    = 'x'
+  , f_strairx      = 'dm'
+  , f_strairy      = 'dm'
+  , f_strtltx      = 'x'
+  , f_strtlty      = 'x'
+  , f_strcorx      = 'x'
+  , f_strcory      = 'x'
+  , f_strocnx      = 'x'
+  , f_strocny      = 'x'
+  , f_strintx      = 'x'
+  , f_strinty      = 'x'
+  , f_strength     = 'dm'
+  , f_divu         = 'dm'
+  , f_shear        = 'dm'
+  , f_sig1         = 'dm'
+  , f_sig2         = 'dm'
+  , f_dvidtt       = 'dm'
+  , f_dvidtd       = 'dm'
+  , f_daidtt       = 'dm'
+  , f_daidtd       = 'dm'
+  , f_mlt_onset    = 'dm'
+  , f_frz_onset    = 'dm'
+  , f_hisnap       = 'x'
+  , f_aisnap       = 'x'
+  , f_trsig        = 'dm'
+  , f_icepresent   = 'dm'
+  , f_iage         = 'x'
+  , f_FY           = 'x'
+  , f_aicen        = 'dm'
+  , f_vicen        = 'dm'
+  , f_Tinz         = 'dm'
+  , f_Sinz         = 'dm'
+  , f_Tsnz         = 'dm'
+  , f_fsurfn_ai    = 'x'
+  , f_fcondtopn_ai = 'x'
+  , f_fmelttn_ai   = 'x'
+  , f_flatn_ai     = 'x'
+  , f_a11          = 'dm'
+  , f_a12          = 'dm'
+  , f_e11          = 'dm'
+  , f_e12          = 'dm'
+  , f_e22          = 'dm'
+  , f_s11          = 'dm'
+  , f_s12          = 'dm'
+  , f_s22          = 'dm'
+  , f_yieldstress11 = 'dm'
+  , f_yieldstress12 = 'dm'
+  , f_yieldstress22 = 'dm'
+/
+
+
+&icefields_mechred_nml
+    f_alvl         = 'dm'
+  , f_vlvl         = 'dm'
+  , f_ardg         = 'dm'
+  , f_vrdg         = 'dm'
+  , f_dardg1dt     = 'dm'
+  , f_dardg2dt     = 'dm'
+  , f_dvirdgdt     = 'dm'
+  , f_opening      = 'dm'
+  , f_ardgn        = 'dm'
+  , f_vrdgn        = 'dm'
+  , f_dardg1ndt    = 'dm'
+  , f_dardg2ndt    = 'dm'
+  , f_dvirdgndt    = 'dm'
+  , f_krdgn        = 'dm'
+  , f_aparticn     = 'dm'
+  , f_aredistn     = 'dm'
+  , f_vredistn     = 'dm'
+  , f_araftn       = 'dm'
+  , f_vraftn       = 'dm'
+/
+
+&icefields_pond_nml
+    f_apondn       = 'x'
+  , f_apeffn       = 'x'
+  , f_hpondn       = 'x'
+  , f_apond        = 'x'
+  , f_hpond        = 'x'
+  , f_ipond        = 'x'
+  , f_apeff        = 'x'
+  , f_apond_ai     = 'x'
+  , f_hpond_ai     = 'x'
+  , f_ipond_ai     = 'x'
+  , f_apeff_ai     = 'x'
+/
+
+&icefields_bgc_nml
+    f_faero_atm    = 'x'
+  , f_faero_ocn    = 'x'
+  , f_aero         = 'x'
+  , f_fNO          = 'x'
+  , f_fNO_ai       = 'x'
+  , f_fNH          = 'x'
+  , f_fNH_ai       = 'x'
+  , f_fN           = 'x'
+  , f_fN_ai        = 'x'
+  , f_fSil         = 'x'
+  , f_fSil_ai      = 'x'
+  , f_bgc_N_sk     = 'x'
+  , f_bgc_C_sk     = 'x'
+  , f_bgc_chl_sk   = 'x'
+  , f_bgc_Nit_sk   = 'x'
+  , f_bgc_Am_sk    = 'x'
+  , f_bgc_Sil_sk   = 'x'
+  , f_bgc_DMSPp_sk = 'x'
+  , f_bgc_DMSPd_sk = 'x'
+  , f_bgc_DMS_sk   = 'x'
+  , f_bgc_Nit_ml   = 'x'
+  , f_bgc_Am_ml    = 'x'
+  , f_bgc_Sil_ml   = 'x'  
+  , f_bgc_DMSP_ml  = 'x'
+  , f_bTin         = 'x'
+  , f_bphi         = 'x' 
+  , f_fbri         = 'dm'    
+  , f_hbri         = 'dm'
+  , f_grownet      = 'x'
+  , f_PPnet        = 'x'
+/
+
+&icefields_drag_nml
+    f_drag         = 'x'
+  , f_Cdn_atm      = 'x'
+  , f_Cdn_ocn      = 'x'
+/
+

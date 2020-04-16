@@ -1,0 +1,15 @@
+#!/bin/ksh 
+
+setup pgi
+setup studio12
+ulimit -s unlimited
+     
+export stamp=`date -u '+%y%m%d%H%M%S'`
+export ICE_LOG_FILE=ice.log.${stamp}
+
+cd /export/cloud/cpom/xp904495/CICE/cice_v5.0_r770/rundir 
+
+./cice  > $ICE_LOG_FILE
+
+exit 0
+

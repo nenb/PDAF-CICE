@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial
+END
+ice_broadcast.F90
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_broadcast.F90
+END
+ice_boundary.F90
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_boundary.F90
+END
+ice_timers.F90
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_timers.F90
+END
+ice_communicate.F90
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_communicate.F90
+END
+ice_exit.F90
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_exit.F90
+END
+ice_gather_scatter.F90
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_gather_scatter.F90
+END
+ice_global_reductions.F90
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/CICE/!svn/ver/773/branches/ucl/cice/serial/ice_global_reductions.F90
+END

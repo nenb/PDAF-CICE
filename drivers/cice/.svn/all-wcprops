@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/CICE/!svn/ver/903/branches/ucl/cice/drivers/cice
+END
+CICE.F90
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/cice/CICE.F90
+END
+CICE_InitMod.F90
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/CICE/!svn/ver/903/branches/ucl/cice/drivers/cice/CICE_InitMod.F90
+END
+CICE_RunMod.F90
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/CICE/!svn/ver/903/branches/ucl/cice/drivers/cice/CICE_RunMod.F90
+END
+CICE_FinalMod.F90
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/cice/CICE_FinalMod.F90
+END
+ice_constants.F90
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/cice/ice_constants.F90
+END
+CICE_RunMod.F90_debug
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/cice/CICE_RunMod.F90_debug
+END

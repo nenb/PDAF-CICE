@@ -1,0 +1,101 @@
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/CICE/!svn/ver/921/branches/ucl/cice/bld
+END
+makdep.c
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/CICE/!svn/ver/310/branches/ucl/cice/bld/makdep.c
+END
+Macros.Linux.LANL.conejo
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/CICE/!svn/ver/921/branches/ucl/cice/bld/Macros.Linux.LANL.conejo
+END
+Macros.Linux.NCAR.yellowstone
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/CICE/!svn/ver/903/branches/ucl/cice/bld/Macros.Linux.NCAR.yellowstone
+END
+Macros.Darwin.CPOM.mi2
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Darwin.CPOM.mi2
+END
+Macros.Linux.UoR.cloud
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Linux.UoR.cloud
+END
+Macros.Linux.ORNL.lens
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Linux.ORNL.lens
+END
+Makefile.Darwin
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Makefile.Darwin
+END
+Macros.Linux.Ubuntu
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Linux.Ubuntu
+END
+Macros.Linux.ORNL.jaguar
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Linux.ORNL.jaguar
+END
+Macros.Darwin.LANL.bigsuze
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Darwin.LANL.bigsuze
+END
+Makefile.std
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/CICE/!svn/ver/310/branches/ucl/cice/bld/Makefile.std
+END
+Macros.Linux.UoR.rocks
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/CICE/!svn/ver/810/branches/ucl/cice/bld/Macros.Linux.UoR.rocks
+END
+Macros.Linux.ORNL.titan
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Linux.ORNL.titan
+END
+Macros.Linux.SIO.uhu
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/CICE/!svn/ver/773/branches/ucl/cice/bld/Macros.Linux.SIO.uhu
+END
+Makefile.UNICOS
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/CICE/!svn/ver/310/branches/ucl/cice/bld/Makefile.UNICOS
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/CICE/!svn/ver/310/branches/ucl/cice/bld/Makefile
+END

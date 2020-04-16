@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/CICE/!svn/ver/903/branches/ucl/cice/drivers/hadgem3
+END
+CICE.F90
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/hadgem3/CICE.F90
+END
+CICE_InitMod.F90
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/CICE/!svn/ver/903/branches/ucl/cice/drivers/hadgem3/CICE_InitMod.F90
+END
+CICE_RunMod.F90
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/CICE/!svn/ver/810/branches/ucl/cice/drivers/hadgem3/CICE_RunMod.F90
+END
+CICE_FinalMod.F90
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/hadgem3/CICE_FinalMod.F90
+END
+ice_constants.F90
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/CICE/!svn/ver/773/branches/ucl/cice/drivers/hadgem3/ice_constants.F90
+END

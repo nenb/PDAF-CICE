@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/CICE/!svn/ver/903/branches/ucl/cice/io_netcdf
+END
+ice_restart.F90
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/CICE/!svn/ver/903/branches/ucl/cice/io_netcdf/ice_restart.F90
+END
+ice_history_write.F90
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/CICE/!svn/ver/903/branches/ucl/cice/io_netcdf/ice_history_write.F90
+END
