@@ -245,6 +245,9 @@ SUBROUTINE calc_3d_offset()
   IMPLICIT NONE
 
 
+  ! Compute 2d offset values in case not already done
+  CALL calc_2d_offset()
+
 #ifdef USE_STRESS
   aicen_offset = a12_4_offset + nx_global*ny_global ! Continue
   ! from 2d state variable a12_4 offset
@@ -686,7 +689,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''uvel''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + uvel_offset) = uvel(i,j,1)
+           state_p(i+(j-1)*nx_global + uvel_offset) = uvel(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -694,7 +697,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''vvel''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + vvel_offset) = vvel(i,j,1)
+           state_p(i+(j-1)*nx_global + vvel_offset) = vvel(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -702,7 +705,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressp_1_offset) = stressp_1(i,j,1)
+           state_p(i+(j-1)*nx_global + stressp_1_offset) = stressp_1(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -710,7 +713,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressp_2_offset) = stressp_2(i,j,1)
+           state_p(i+(j-1)*nx_global + stressp_2_offset) = stressp_2(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -718,7 +721,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressp_3_offset) = stressp_3(i,j,1)
+           state_p(i+(j-1)*nx_global + stressp_3_offset) = stressp_3(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -726,7 +729,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressp_4_offset) = stressp_4(i,j,1)
+           state_p(i+(j-1)*nx_global + stressp_4_offset) = stressp_4(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -734,7 +737,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressm_1_offset) = stressm_1(i,j,1)
+           state_p(i+(j-1)*nx_global + stressm_1_offset) = stressm_1(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -742,7 +745,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressm_2_offset) = stressm_2(i,j,1)
+           state_p(i+(j-1)*nx_global + stressm_2_offset) = stressm_2(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -750,7 +753,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressm_3_offset) = stressm_3(i,j,1)
+           state_p(i+(j-1)*nx_global + stressm_3_offset) = stressm_3(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -758,7 +761,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stressm_4_offset) = stressm_4(i,j,1)
+           state_p(i+(j-1)*nx_global + stressm_4_offset) = stressm_4(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -766,7 +769,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stress12_1_offset) = stress12_1(i,j,1)
+           state_p(i+(j-1)*nx_global + stress12_1_offset) = stress12_1(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -774,7 +777,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stress12_2_offset) = stress12_2(i,j,1)
+           state_p(i+(j-1)*nx_global + stress12_2_offset) = stress12_2(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -782,7 +785,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stress12_3_offset) = stress12_3(i,j,1)
+           state_p(i+(j-1)*nx_global + stress12_3_offset) = stress12_3(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -790,7 +793,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + stress12_4_offset) = stress12_4(i,j,1)
+           state_p(i+(j-1)*nx_global + stress12_4_offset) = stress12_4(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -798,7 +801,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''sst''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + sst_offset) = sst(i,j,1)
+           state_p(i+(j-1)*nx_global + sst_offset) = sst(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -807,7 +810,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a11_1_offset) = a11_1(i,j,1)
+           state_p(i+(j-1)*nx_global + a11_1_offset) = a11_1(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -815,7 +818,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a11_2_offset) = a11_2(i,j,1)
+           state_p(i+(j-1)*nx_global + a11_2_offset) = a11_2(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -823,7 +826,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a11_3_offset) = a11_3(i,j,1)
+           state_p(i+(j-1)*nx_global + a11_3_offset) = a11_3(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -831,7 +834,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a11_4_offset) = a11_4(i,j,1)
+           state_p(i+(j-1)*nx_global + a11_4_offset) = a11_4(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -839,7 +842,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a12_1_offset) = a12_1(i,j,1)
+           state_p(i+(j-1)*nx_global + a12_1_offset) = a12_1(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -847,7 +850,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a12_2_offset) = a12_2(i,j,1)
+           state_p(i+(j-1)*nx_global + a12_2_offset) = a12_2(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -855,7 +858,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a12_3_offset) = a12_3(i,j,1)
+           state_p(i+(j-1)*nx_global + a12_3_offset) = a12_3(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -863,7 +866,7 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global + a12_4_offset) = a12_4(i,j,1)
+           state_p(i+(j-1)*nx_global + a12_4_offset) = a12_4(i+1,j+1,1)
         END DO
      END DO
   END IF
@@ -907,7 +910,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   aicen_offset) = aicen(i,j,k,1)
+                   aicen_offset) = aicen(i+1,j+1,k,1)
            END DO
         END DO
      END DO
@@ -918,7 +921,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   vicen_offset) = vicen(i,j,k,1)
+                   vicen_offset) = vicen(i+1,j+1,k,1)
            END DO
         END DO
      END DO
@@ -929,7 +932,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   vsnon_offset) = vsnon(i,j,k,1)
+                   vsnon_offset) = vsnon(i+1,j+1,k,1)
            END DO
         END DO
      END DO
@@ -940,7 +943,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   Tsfcn_offset) = trcrn(i,j,nt_Tsfc,k,1)
+                   Tsfcn_offset) = trcrn(i+1,j+1,nt_Tsfc,k,1)
            END DO
         END DO
      END DO
@@ -951,7 +954,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   iage_offset) = trcrn(i,j,nt_iage,k,1)
+                   iage_offset) = trcrn(i+1,j+1,nt_iage,k,1)
            END DO
         END DO
      END DO
@@ -962,7 +965,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   FY_offset) = trcrn(i,j,nt_FY,k,1)
+                   FY_offset) = trcrn(i+1,j+1,nt_FY,k,1)
            END DO
         END DO
      END DO
@@ -973,7 +976,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   alvl_offset) = trcrn(i,j,nt_alvl,k,1)
+                   alvl_offset) = trcrn(i+1,j+1,nt_alvl,k,1)
            END DO
         END DO
      END DO
@@ -984,7 +987,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   vlvl_offset) = trcrn(i,j,nt_vlvl,k,1)
+                   vlvl_offset) = trcrn(i+1,j+1,nt_vlvl,k,1)
            END DO
         END DO
      END DO
@@ -995,7 +998,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   apnd_offset) = trcrn(i,j,nt_apnd,k,1)
+                   apnd_offset) = trcrn(i+1,j+1,nt_apnd,k,1)
            END DO
         END DO
      END DO
@@ -1006,7 +1009,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   hpnd_offset) = trcrn(i,j,nt_hpnd,k,1)
+                   hpnd_offset) = trcrn(i+1,j+1,nt_hpnd,k,1)
            END DO
         END DO
      END DO
@@ -1017,7 +1020,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   ipnd_offset) = trcrn(i,j,nt_ipnd,k,1)
+                   ipnd_offset) = trcrn(i+1,j+1,nt_ipnd,k,1)
            END DO
         END DO
      END DO
@@ -1028,7 +1031,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice001_offset) = trcrn(i,j,nt_sice,k,1)
+                   sice001_offset) = trcrn(i+1,j+1,nt_sice,k,1)
            END DO
         END DO
      END DO
@@ -1039,7 +1042,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice001_offset) = trcrn(i,j,nt_qice,k,1)
+                   qice001_offset) = trcrn(i+1,j+1,nt_qice,k,1)
            END DO
         END DO
      END DO
@@ -1050,7 +1053,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice002_offset) = trcrn(i,j,nt_sice+1,k,1)
+                   sice002_offset) = trcrn(i+1,j+1,nt_sice+1,k,1)
            END DO
         END DO
      END DO
@@ -1061,7 +1064,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice002_offset) = trcrn(i,j,nt_qice+1,k,1)
+                   qice002_offset) = trcrn(i+1,j+1,nt_qice+1,k,1)
            END DO
         END DO
      END DO
@@ -1072,7 +1075,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice003_offset) = trcrn(i,j,nt_sice+2,k,1)
+                   sice003_offset) = trcrn(i+1,j+1,nt_sice+2,k,1)
            END DO
         END DO
      END DO
@@ -1083,7 +1086,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice003_offset) = trcrn(i,j,nt_qice+2,k,1)
+                   qice003_offset) = trcrn(i+1,j+1,nt_qice+2,k,1)
            END DO
         END DO
      END DO
@@ -1094,7 +1097,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice004_offset) = trcrn(i,j,nt_sice+3,k,1)
+                   sice004_offset) = trcrn(i+1,j+1,nt_sice+3,k,1)
            END DO
         END DO
      END DO
@@ -1105,7 +1108,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice004_offset) = trcrn(i,j,nt_qice+3,k,1)
+                   qice004_offset) = trcrn(i+1,j+1,nt_qice+3,k,1)
            END DO
         END DO
      END DO
@@ -1116,7 +1119,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice005_offset) = trcrn(i,j,nt_sice+4,k,1)
+                   sice005_offset) = trcrn(i+1,j+1,nt_sice+4,k,1)
            END DO
         END DO
      END DO
@@ -1127,7 +1130,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice005_offset) = trcrn(i,j,nt_qice+4,k,1)
+                   qice005_offset) = trcrn(i+1,j+1,nt_qice+4,k,1)
            END DO
         END DO
      END DO
@@ -1138,7 +1141,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice006_offset) = trcrn(i,j,nt_sice+5,k,1)
+                   sice006_offset) = trcrn(i+1,j+1,nt_sice+5,k,1)
            END DO
         END DO
      END DO
@@ -1149,7 +1152,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice006_offset) = trcrn(i,j,nt_qice+5,k,1)
+                   qice006_offset) = trcrn(i+1,j+1,nt_qice+5,k,1)
            END DO
         END DO
      END DO
@@ -1160,7 +1163,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice007_offset) = trcrn(i,j,nt_sice+6,k,1)
+                   sice007_offset) = trcrn(i+1,j+1,nt_sice+6,k,1)
            END DO
         END DO
      END DO
@@ -1171,7 +1174,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice007_offset) = trcrn(i,j,nt_qice+6,k,1)
+                   qice007_offset) = trcrn(i+1,j+1,nt_qice+6,k,1)
            END DO
         END DO
      END DO
@@ -1182,7 +1185,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qsno001_offset) = trcrn(i,j,nt_qsno,k,1)
+                   qsno001_offset) = trcrn(i+1,j+1,nt_qsno,k,1)
            END DO
         END DO
      END DO
@@ -1229,7 +1232,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''uvel''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           uvel(i,j,1) = state_p(i+(j-1)*nx_global + uvel_offset)
+           uvel(i+1,j+1,1) = state_p(i+(j-1)*nx_global + uvel_offset)
         END DO
      END DO
   END IF
@@ -1237,7 +1240,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''vvel''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           vvel(i,j,1) = state_p(i+(j-1)*nx_global + vvel_offset)
+           vvel(i+1,j+1,1) = state_p(i+(j-1)*nx_global + vvel_offset)
         END DO
      END DO
   END IF
@@ -1245,7 +1248,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressp_1(i,j,1) = state_p(i+(j-1)*nx_global + stressp_1_offset)
+           stressp_1(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressp_1_offset)
         END DO
      END DO
   END IF
@@ -1253,7 +1256,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressp_2(i,j,1) = state_p(i+(j-1)*nx_global + stressp_2_offset)
+           stressp_2(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressp_2_offset)
         END DO
      END DO
   END IF
@@ -1261,7 +1264,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressp_3(i,j,1) = state_p(i+(j-1)*nx_global + stressp_3_offset)
+           stressp_3(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressp_3_offset)
         END DO
      END DO
   END IF
@@ -1269,7 +1272,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressp_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressp_4(i,j,1) = state_p(i+(j-1)*nx_global + stressp_4_offset)
+           stressp_4(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressp_4_offset)
         END DO
      END DO
   END IF
@@ -1277,7 +1280,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressm_1(i,j,1) = state_p(i+(j-1)*nx_global + stressm_1_offset)
+           stressm_1(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressm_1_offset)
         END DO
      END DO
   END IF
@@ -1285,7 +1288,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressm_2(i,j,1) = state_p(i+(j-1)*nx_global + stressm_2_offset)
+           stressm_2(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressm_2_offset)
         END DO
      END DO
   END IF
@@ -1293,7 +1296,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressm_3(i,j,1) = state_p(i+(j-1)*nx_global + stressm_3_offset)
+           stressm_3(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressm_3_offset)
         END DO
      END DO
   END IF
@@ -1301,7 +1304,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stressm_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stressm_4(i,j,1) = state_p(i+(j-1)*nx_global + stressm_4_offset)
+           stressm_4(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stressm_4_offset)
         END DO
      END DO
   END IF
@@ -1309,7 +1312,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stress12_1(i,j,1) = state_p(i+(j-1)*nx_global + stress12_1_offset)
+           stress12_1(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stress12_1_offset)
         END DO
      END DO
   END IF
@@ -1317,7 +1320,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stress12_2(i,j,1) = state_p(i+(j-1)*nx_global + stress12_2_offset)
+           stress12_2(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stress12_2_offset)
         END DO
      END DO
   END IF
@@ -1325,7 +1328,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stress12_3(i,j,1) = state_p(i+(j-1)*nx_global + stress12_3_offset)
+           stress12_3(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stress12_3_offset)
         END DO
      END DO
   END IF
@@ -1333,7 +1336,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''stress12_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           stress12_4(i,j,1) = state_p(i+(j-1)*nx_global + stress12_4_offset)
+           stress12_4(i+1,j+1,1) = state_p(i+(j-1)*nx_global + stress12_4_offset)
         END DO
      END DO
   END IF
@@ -1341,7 +1344,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''sst''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           sst(i,j,1) = state_p(i+(j-1)*nx_global + sst_offset)
+           sst(i+1,j+1,1) = state_p(i+(j-1)*nx_global + sst_offset)
         END DO
      END DO
   END IF
@@ -1350,7 +1353,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a11_1(i,j,1) = state_p(i+(j-1)*nx_global + a11_1_offset)
+           a11_1(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a11_1_offset)
         END DO
      END DO
   END IF
@@ -1358,7 +1361,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a11_2(i,j,1) = state_p(i+(j-1)*nx_global + a11_2_offset)
+           a11_2(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a11_2_offset)
         END DO
      END DO
   END IF
@@ -1366,7 +1369,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a11_3(i,j,1) = state_p(i+(j-1)*nx_global + a11_3_offset)
+           a11_3(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a11_3_offset)
         END DO
      END DO
   END IF
@@ -1374,7 +1377,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a11_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a11_4(i,j,1) = state_p(i+(j-1)*nx_global + a11_4_offset)
+           a11_4(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a11_4_offset)
         END DO
      END DO
   END IF
@@ -1382,7 +1385,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_1''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a12_1(i,j,1) = state_p(i+(j-1)*nx_global + a12_1_offset)
+           a12_1(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a12_1_offset)
         END DO
      END DO
   END IF
@@ -1390,7 +1393,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_2''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a12_2(i,j,1) = state_p(i+(j-1)*nx_global + a12_2_offset)
+           a12_2(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a12_2_offset)
         END DO
      END DO
   END IF
@@ -1398,7 +1401,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_3''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a12_3(i,j,1) = state_p(i+(j-1)*nx_global + a12_3_offset)
+           a12_3(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a12_3_offset)
         END DO
      END DO
   END IF
@@ -1406,7 +1409,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   IF( ANY( id2d_list .EQ. '''a12_4''' ) ) THEN
      DO j = 1,ny_global
         DO i = 1,nx_global
-           a12_4(i,j,1) = state_p(i+(j-1)*nx_global + a12_4_offset)
+           a12_4(i+1,j+1,1) = state_p(i+(j-1)*nx_global + a12_4_offset)
         END DO
      END DO
   END IF
@@ -1449,7 +1452,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              aicen(i,j,k,1) = &
+              aicen(i+1,j+1,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    aicen_offset)
            END DO
@@ -1461,7 +1464,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              vicen(i,j,k,1) = &
+              vicen(i+1,j+1,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    vicen_offset)
            END DO
@@ -1473,7 +1476,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              vsnon(i,j,k,1) = &
+              vsnon(i+1,j+1,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    vsnon_offset)
            END DO
@@ -1485,7 +1488,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_Tsfc,k,1) = &
+              trcrn(i+1,j+1,nt_Tsfc,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    Tsfcn_offset)
            END DO
@@ -1497,7 +1500,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_iage,k,1) = &
+              trcrn(i+1,j+1,nt_iage,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    iage_offset)
            END DO
@@ -1509,7 +1512,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_FY,k,1) = &
+              trcrn(i+1,j+1,nt_FY,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    FY_offset)
            END DO
@@ -1521,7 +1524,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_alvl,k,1) = &
+              trcrn(i+1,j+1,nt_alvl,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    alvl_offset)
            END DO
@@ -1533,7 +1536,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_vlvl,k,1) = &
+              trcrn(i+1,j+1,nt_vlvl,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    vlvl_offset)
            END DO
@@ -1545,7 +1548,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_apnd,k,1) = &
+              trcrn(i+1,j+1,nt_apnd,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    apnd_offset)
            END DO
@@ -1557,7 +1560,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_hpnd,k,1) = &
+              trcrn(i+1,j+1,nt_hpnd,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    hpnd_offset)
            END DO
@@ -1569,7 +1572,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_ipnd,k,1) = &
+              trcrn(i+1,j+1,nt_ipnd,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    ipnd_offset)
            END DO
@@ -1581,7 +1584,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice,k,1) = &
+              trcrn(i+1,j+1,nt_sice,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice001_offset)
            END DO
@@ -1593,7 +1596,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice,k,1) = &
+              trcrn(i+1,j+1,nt_qice,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice001_offset)
            END DO
@@ -1605,7 +1608,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice+1,k,1) = &
+              trcrn(i+1,j+1,nt_sice+1,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice002_offset)
            END DO
@@ -1617,7 +1620,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice+1,k,1) = &
+              trcrn(i+1,j+1,nt_qice+1,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice002_offset)
            END DO
@@ -1629,7 +1632,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice+2,k,1) = &
+              trcrn(i+1,j+1,nt_sice+2,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice003_offset)
            END DO
@@ -1641,7 +1644,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice+2,k,1) = &
+              trcrn(i+1,j+1,nt_qice+2,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice003_offset)
            END DO
@@ -1653,7 +1656,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice+3,k,1) = &
+              trcrn(i+1,j+1,nt_sice+3,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice004_offset)
            END DO
@@ -1665,7 +1668,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice+3,k,1) = &
+              trcrn(i+1,j+1,nt_qice+3,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice004_offset)
            END DO
@@ -1677,7 +1680,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice+4,k,1) = &
+              trcrn(i+1,j+1,nt_sice+4,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice005_offset)
            END DO
@@ -1689,7 +1692,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice+4,k,1) = &
+              trcrn(i+1,j+1,nt_qice+4,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice005_offset)
            END DO
@@ -1701,7 +1704,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice+5,k,1) = &
+              trcrn(i+1,j+1,nt_sice+5,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice006_offset)
            END DO
@@ -1713,7 +1716,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice+5,k,1) = &
+              trcrn(i+1,j+1,nt_qice+5,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice006_offset)
            END DO
@@ -1725,7 +1728,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_sice+6,k,1) = &
+              trcrn(i+1,j+1,nt_sice+6,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    sice007_offset)
            END DO
@@ -1737,7 +1740,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qice+6,k,1) = &
+              trcrn(i+1,j+1,nt_qice+6,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qice007_offset)
            END DO
@@ -1749,7 +1752,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i,j,nt_qsno,k,1) = &
+              trcrn(i+1,j+1,nt_qsno,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    qsno001_offset)
            END DO
