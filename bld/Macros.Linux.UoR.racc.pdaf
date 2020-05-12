@@ -20,7 +20,7 @@ endif
 FIXEDFLAGS := -132
 FREEFLAGS  := 
 #FFLAGS     := -r8 -i4 -O2 -align all -w -ftz -assume byterecl -fpe0 -traceback -g
-FFLAGS     := -O3 -w  
+FFLAGS     := -O3 -w -fdefault-real-8 -fdefault-double-8
 #FFLAGS     := -r8 -i4  -align all -w -ftz -convert big_endian -assume byterecl -g
 #FFLAGS     := -r8 -i4 -align all -w -ftz -convert big_endian -assume byterecl -fpe0 -CB -traceback 
 #FFLAGS     := -r8 -i4 -align all -w -ftz -convert big_endian -assume byterecl -fpe0 -CB 
