@@ -19,7 +19,7 @@ SUBROUTINE read_config_pdaf()
        incremental, type_forget, forget, local_range,&
        locweight, srange, rms_obs,type_trans,&
        type_sqrt, covartype, rank_analysis_enkf,&
-       istate_fname
+       istate_dir
 
   IMPLICIT NONE
 !EOP
@@ -27,7 +27,7 @@ SUBROUTINE read_config_pdaf()
 ! Local variables
   CHARACTER(len=100) :: nmlfile   ! name of namelist file
 
-  NAMELIST /pdaf_nml/ istate_fname, filtertype, subtype, dim_ens,& 
+  NAMELIST /pdaf_nml/ istate_dir, filtertype, subtype, dim_ens,& 
        delt_obs, screen,incremental, type_forget, forget,&
        local_range, locweight, srange, rms_obs,type_trans,&
        type_sqrt, covartype, rank_analysis_enkf
@@ -61,7 +61,7 @@ SUBROUTINE read_config_pdaf()
     WRITE (*,'(5x,a,i10)')    'locweight    ', locweight
     WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
     WRITE (*,'(5x,a,es10.2)') 'rms_obs_ssh  ', rms_obs
-    WRITE (*,'(5x,a,a)')      'istate_fname ', istate_fname
+    WRITE (*,'(5x,a,a)')      'istate_dir   ', istate_dir
     WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
   END IF showconf

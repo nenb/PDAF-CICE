@@ -448,8 +448,10 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
 
 ! !USES:
   USE netcdf
+  USE ice_calendar, &
+       ONLY: year_init
   USE mod_assimilation, &
-       ONLY: istate_fname
+       ONLY: istate_dir
   USE ice_domain_size, &
        ONLY: nx_global, ny_global
 
@@ -467,6 +469,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
   INTEGER :: id_2dvar               ! IDs for fields
   INTEGER :: pos(2),cnt(2)          ! Vectors for 2D reading fields
   CHARACTER(len=100) :: istate_ncfile     ! File holding initial state estimate
+  CHARACTER(len=100) :: year              ! Year of initial state estimate
   REAL, ALLOCATABLE :: var2d(:,:)         ! Array for reading state variables
 
 
@@ -474,7 +477,8 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
   ! *** Open file containing initial state ***
   ! ******************************************
 
-  istate_ncfile= trim(istate_fname)//'.nc'
+  WRITE(year, '(i4)') year_init
+  istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
   s = 1
   stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
 
@@ -551,8 +555,10 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
 
 ! !USES:
   USE netcdf
+  USE ice_calendar, &
+       ONLY: year_init
   USE mod_assimilation, &
-       ONLY: istate_fname
+       ONLY: istate_dir
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
 
@@ -570,6 +576,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
   INTEGER :: ncid_in                 ! ID for NetCDF file
   INTEGER :: id_3dvar                ! IDs for fields
   CHARACTER(len=100) :: istate_ncfile     ! File holding initial state estimate
+  CHARACTER(len=100) :: year              ! Year of initial state estimate
   REAL, ALLOCATABLE :: var3d(:,:,:)       ! Array for reading state variables
 
 
@@ -577,7 +584,8 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
   ! *** Open file containing initial state ***
   ! ******************************************
 
-  istate_ncfile= trim(istate_fname)//'.nc'
+  WRITE(year, '(i4)') year_init
+  istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
   s = 1
   stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
 
@@ -657,8 +665,6 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE mod_assimilation, &
-       ONLY: istate_fname
   USE ice_domain_size, &
        ONLY: nx_global, ny_global
   USE ice_state, &
@@ -881,8 +887,6 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE mod_assimilation, &
-       ONLY: istate_fname
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
   USE ice_state, &
@@ -1200,8 +1204,6 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE mod_assimilation, &
-       ONLY: istate_fname
   USE ice_domain_size, &
        ONLY: nx_global, ny_global
   USE ice_state, &
@@ -1424,8 +1426,6 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE mod_assimilation, &
-       ONLY: istate_fname
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
   USE ice_state, &

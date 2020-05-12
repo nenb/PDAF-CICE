@@ -3,7 +3,7 @@
 
 &pdaf_nml
 ! Filter choice:
- istate_fname='/home/users/ys916780/PDAF_CICE/ic_files/',
+ istate_dir='/home/users/ys916780/PDAF_CICE/ic_files/',
  filtertype=5,
  subtype=0,
  dim_ens=2,

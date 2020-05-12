@@ -150,7 +150,7 @@ MODULE mod_assimilation
                     !   (0) symmetric square root, (1) Cholesky decomposition
 
 !    ! File input - available as namelist option
-  CHARACTER (len=110) :: istate_fname  ! file containing initial state estimate
+  CHARACTER (len=110) :: istate_dir  ! directory containing initial state estimate
 
 !    ! File output - available as a command line option
   CHARACTER (len=90) :: filename  ! file name for assimilation output

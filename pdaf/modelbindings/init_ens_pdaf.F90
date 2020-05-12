@@ -29,8 +29,10 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 ! !USES:
 
   USE netcdf
+  USE ice_calendar, &
+       ONLY: year_init
   USE mod_assimilation, &
-       ONLY: screen, istate_fname
+       ONLY: screen, istate_dir
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
   USE mod_statevector, &
@@ -50,12 +52,13 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   INTEGER, INTENT(inout) :: flag                 ! PDAF status flag
 
 ! *** local variables ***
-  INTEGER :: s, i                         ! Counters
+  INTEGER :: s, i, yr, mem                ! Counters
   INTEGER :: stat(20000)                  ! Status flag for NetCDF commands
   INTEGER :: ncid_in                      ! ID for NetCDF file
   INTEGER :: id_dimx,id_dimy,id_dim_cat   ! IDs for dimensions
   INTEGER :: dim_lon_ic, dim_lat_ic, dim_cat_ic ! Initial state dimensions
   CHARACTER(len=100) :: istate_ncfile     ! File holding initial state estimate
+  CHARACTER(len=100) :: year              ! Year of initial state estimate
 
 
   ! ************************************
@@ -72,75 +75,79 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   ! ***********************************
   ! ***********************************
 
+  ! Loop over ensemble member IC files
+  memloop:DO  mem = 1, dim_ens
 
-  ! ******************************************
+     ! ******************************************
+     ! *** Open file containing initial state ***
+     ! ******************************************
 
+     ! IMPORTANT: init_ens only called by filter, hence year_init is constant.
+     yr = year_init + mem - 1
+     WRITE(year, '(i4)') yr
+     istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
 
-  ! ******************************************
-  ! *** Open file containing initial state ***
-  ! ******************************************
+     WRITE (*,'(/9x, a, 3x, a)') 'Initial state estimate file:', istate_ncfile
 
-  istate_ncfile= trim(istate_fname)//'.nc'
+     s = 1
+     stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
 
-  WRITE (*,'(/9x, a, 3x, a)') 'Initial state estimate file:', istate_ncfile
+     DO i = 1, s
+        IF (stat(i) .NE. NF90_NOERR) THEN
+           WRITE(*,'(/9x, a, 3x, a)') &
+                'NetCDF error in opening initial state file:', istate_ncfile
+           STOP
+        END IF
+     END DO
 
-  s = 1
-  stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
+     ! ************************
+     ! *** Check dimensions ***
+     ! ************************
 
-  DO i = 1, s
-     IF (stat(i) .NE. NF90_NOERR) THEN
-        WRITE(*,'(/9x, a, 3x, a)') &
-             'NetCDF error in opening initial state file:', istate_ncfile
+     s=1
+     stat(s) = NF90_INQ_DIMID(ncid_in, 'ni', id_dimx)
+     s = s + 1
+     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimx, len=dim_lon_ic)
+     s = s + 1
+     stat(s) = NF90_INQ_DIMID(ncid_in, 'nj', id_dimy)
+     s = s + 1
+     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat_ic)
+     s = s + 1
+     stat(s) = NF90_INQ_DIMID(ncid_in, 'ncat', id_dim_cat)
+     s = s + 1
+     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dim_cat, len=dim_cat_ic)
+
+     DO i = 1, s
+        IF (stat(i) .NE. NF90_NOERR) THEN
+           WRITE(*, '(/9x, a, 3x,i1 )') &
+                'NetCDF error in reading dimensions from initial state file, s=', i
+           STOP
+        END IF
+     END DO
+
+     ! Compare global dimensions from model to dimensions in file.
+     IF (dim_lon_ic .NE. nx_global .OR. dim_lat_ic .NE. ny_global .OR. &
+          dim_cat_ic .NE. ncat) THEN
+        WRITE (*,'(/3x, a)') 'ERROR: Dimensions in initial state file not valid.'
         STOP
      END IF
-  END DO
 
-  ! ************************
-  ! *** Check dimensions ***
-  ! ************************
+     ! *******************************************
+     ! *** Close file containing initial state ***
+     ! *******************************************
 
-  s=1
-  stat(s) = NF90_INQ_DIMID(ncid_in, 'ni', id_dimx)
-  s = s + 1
-  stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimx, len=dim_lon_ic)
-  s = s + 1
-  stat(s) = NF90_INQ_DIMID(ncid_in, 'nj', id_dimy)
-  s = s + 1
-  stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat_ic)
-  s = s + 1
-  stat(s) = NF90_INQ_DIMID(ncid_in, 'ncat', id_dim_cat)
-  s = s + 1
-  stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dim_cat, len=dim_cat_ic)
+     s = 1
+     stat(s) = NF90_CLOSE(ncid_in)
 
-  DO i = 1, s
-     IF (stat(i) .NE. NF90_NOERR) THEN
-        WRITE(*, '(/9x, a, 3x,i1 )') &
-             'NetCDF error in reading dimensions from initial state file, s=', i
-        STOP
-     END IF
-  END DO
+     DO i = 1, s
+        IF (stat(i) .NE. NF90_NOERR) THEN
+           WRITE(*,'(/9x, a, 3x, a)') &
+                'NetCDF error in closing initial state file:', istate_ncfile
+           STOP
+        END IF
+     END DO
 
-  ! Compare global dimensions from model to dimensions in file.
-  IF (dim_lon_ic .NE. nx_global .OR. dim_lat_ic .NE. ny_global .OR. &
-       dim_cat_ic .NE. ncat) THEN
-     WRITE (*,'(/3x, a)') 'ERROR: Dimensions in initial state file not valid.'
-     STOP
-  END IF
-
-  ! *******************************************
-  ! *** Close file containing initial state ***
-  ! *******************************************
-
-  s = 1
-  stat(s) = NF90_CLOSE(ncid_in)
-
-  DO i = 1, s
-     IF (stat(i) .NE. NF90_NOERR) THEN
-        WRITE(*,'(/9x, a, 3x, a)') &
-             'NetCDF error in closing initial state file:', istate_ncfile
-        STOP
-     END IF
-  END DO
+  END DO memloop
 
   ! ***************************************************
   ! *** Initialize ensemble array of state vectors  ***

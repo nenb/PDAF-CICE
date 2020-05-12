@@ -95,7 +95,10 @@
 #ifdef CCSMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
-
+#ifdef USE_PDAF
+      use mod_parallel_pdaf, only: task_id
+#endif
+      
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -639,7 +642,11 @@
          fbot_xfer_type = 'constant'
       endif
 
-
+#ifdef USE_PDAF
+      ! Overwrite CICE namelist and give each member different year
+      year_init = year_init + task_id
+      fyear_init = fyear_init + task_id
+#endif
       call broadcast_scalar(days_per_year,      master_task)
       call broadcast_scalar(use_leap_years,     master_task)
       call broadcast_scalar(year_init,          master_task)

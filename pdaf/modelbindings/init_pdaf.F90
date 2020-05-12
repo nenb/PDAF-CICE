@@ -30,8 +30,7 @@ SUBROUTINE init_pdaf()
        forget, rank_analysis_enkf, locweight, local_range, srange, &
        filename, type_trans, type_sqrt, delt_obs
   USE mod_statevector ! Routines and variables for state vector
-  USE ice_forcing, &  
-       ONLY: atm_data_dir ! Location of atmosphere forcing file
+
 
   IMPLICIT NONE
 
@@ -50,7 +49,6 @@ SUBROUTINE init_pdaf()
   INTEGER :: status_pdaf       ! PDAF status flag
   INTEGER :: doexit, steps     ! Not used in this implementation
   REAL    :: timenow           ! Not used in this implementation
-  CHARACTER(len=256) :: atm_data_dir_ens ! Atmosphere forcing directory for ensemble
 
 ! External subroutines
   EXTERNAL :: init_ens_pdaf            ! Ensemble initialization
@@ -143,11 +141,6 @@ SUBROUTINE init_pdaf()
 
 ! *** Read namelist file for PDAF ***
   CALL read_config_pdaf()
-
-! Modify location of atmosphere forcing directory so
-! that each ensemble member uses a different directory.
-  WRITE(atm_data_dir_ens,'(a,i0.3)') trim(atm_data_dir), task_id
-  WRITE(*,'(a,a)') 'ATM_DATA_DIR=', trim(atm_data_dir_ens)
 
 ! *** Initial Screen output ***
 ! *** This is optional      ***
