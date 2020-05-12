@@ -1,7 +1,7 @@
 &setup_nml
     days_per_year  = 365
   , use_leap_years = .false.
-  , year_init      = 2000 
+  , year_init      = 2008 
   , istep0         = 0
   , dt             = 3600.0
   , npt            = 100 
@@ -152,11 +152,11 @@
 &forcing_nml
     formdrag        = .true.
   , atmbndy         = 'default'
-  , fyear_init      = 2000
-  , ycycle          = 16
+  , fyear_init      = 2008
+  , ycycle          = 4
   , atm_data_format = 'nc'
   , atm_data_type   = 'cpom'
-  , atm_data_dir    = '/storage/shared/glusterfs/cpom/users/xp904495/NCEP/NHemi_ocean/'
+  , atm_data_dir    = '/storage/silver/cpom/xp904495/NCEP/NHemi_ocean/'
   , calc_strair     = .true.
   , calc_Tsfc       = .true.
   , natmiter        = 5
@@ -173,7 +173,7 @@
   , sst_data_type   = 'clim'
   , qdp_data_type   = 'default'
   , uwat_data_type   = 'clim'
-  , ocn_data_dir    = '/storage/shared/glusterfs/cpom/users/xp904495/Ocean_NHemi_01m_ts_24m_u/'
+  , ocn_data_dir    = '/storage/silver/cpom/xp904495/Ocean_NHemi_01m_ts_24m_u/'
   , oceanmixed_file = 'unknown_oceanmixed_file'
   , restore_sst     = .true.
   , trestore        =  20
