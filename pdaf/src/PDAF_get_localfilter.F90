@@ -15,34 +15,39 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_mod_lnetf.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF_get_localfilter.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
-! !MODULE:
-MODULE PDAF_mod_lnetf
-  
+! !ROUTINE: PDAF_get_localfilter --- Query whther chosen filter is domain-localized
+SUBROUTINE PDAF_get_localfilter(lfilter)
+
 ! !DESCRIPTION:
-! This module provides variables shared between the
-! subroutines of of LNETF in PDAF.
+! Routine to return the information whther the current filter is domain-localized.
 !
 ! !  This is a core routine of PDAF and
 !    should not be changed by the user   !
 !
 ! !REVISION HISTORY:
-! 2016-06 - Lars Nerger - Initial code
+! 2020-03 - Lars Nerger - Initial code
 ! Later revisions - see svn log
-!
-! !USES:
 
-  USE PDAF_mod_filter   ! Include general filter variables
+  USE PDAF_mod_filter, &
+       ONLY: localfilter
 
   IMPLICIT NONE
-  SAVE
 
-! !PUBLIC DATA MEMBERS:
+! !ARGUMENTS:
+  INTEGER, INTENT(out) :: lfilter  ! Whether the filter is domain-localized
 
-  ! *** Filter fields ***
-  REAL, ALLOCATABLE :: weights(:)          ! Vector of weights
+! !CALLING SEQUENCE:
+! Called by: model code
 !EOP
 
-END MODULE PDAF_mod_lnetf
+  
+! ***********************
+! *** Set localfilter ***
+! ***********************
+
+  lfilter = localfilter
+  
+END SUBROUTINE PDAF_get_localfilter

@@ -1,4 +1,4 @@
-! Copyright (c) 2014-2019 Lars Nerger
+! Copyright (c) 2014-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_pf_analysis.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_pf_analysis.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_pf_analysis --- PF analysis with resampling
@@ -103,10 +103,14 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
 ! *** INITIALIZATION ***
 ! **********************
 
+  CALL PDAF_timeit(51, 'new')
+
   IF (mype == 0 .AND. screen > 0) THEN
      WRITE (*, '(a, 5x, a)') &
           'PDAF', 'Compute particle filter update'
   END IF
+
+  CALL PDAF_timeit(51, 'old')
 
 
 ! *********************************
@@ -117,7 +121,7 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
   CALL U_init_dim_obs(step, dim_obs_p)
   CALL PDAF_timeit(15, 'old')
 
-  IF (screen > 0) THEN
+  IF (screen > 2) THEN
      WRITE (*, '(a, 5x, a13, 1x, i3, 1x, a, i8)') &
           'PDAF', '--- PE-domain', mype, 'dimension of observation vector', dim_obs_p
   END IF
@@ -140,7 +144,9 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
      IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_obs_p)
 
      ! get observation vector
+     CALL PDAF_timeit(50, 'new')
      CALL U_init_obs(step, dim_obs_p, obs_p)
+     CALL PDAF_timeit(50, 'old')
 
      ! Allocate tempory arrays for obs-ens_i
      ALLOCATE(resid_i(dim_obs_p))
@@ -150,15 +156,23 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
      ! Get residual as difference of observation and observed state for each ensemble member
      CALC_w: DO member = 1, dim_ens
 
+        CALL PDAF_timeit(44, 'new')
         CALL U_obs_op(step, dim_p, dim_obs_p, ens_p(:, member), resid_i)
+        CALL PDAF_timeit(4, 'old')
 
+        CALL PDAF_timeit(51, 'new')
         resid_i = obs_p - resid_i 
+        CALL PDAF_timeit(51, 'old')
 
         ! Compute likelihood
+        CALL PDAF_timeit(47, 'new')
         CALL U_likelihood(step, dim_obs_p, obs_p, resid_i, weight)
+        CALL PDAF_timeit(47, 'old')
         weights(member) = weight
 
      END DO CALC_w
+
+     CALL PDAF_timeit(51, 'new')
 
      ! Normalize weights
      total_weight = 0.0
@@ -170,9 +184,8 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
         ! Normalize weights
         weights = weights / total_weight
      ELSE
-        ! ERROR: weights are zero
-        flag = 1
-        WRITE(*,'(/5x,a/)') 'PDAF-ERROR (1): Zero weights in PF analysis step'
+        ! weights are zero - reset to uniform weights
+        weights = 1.0/REAL(dim_ens)
      END IF
 
      DEALLOCATE(obs_p, resid_i, Rinvresid)
@@ -182,14 +195,19 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
      IF (mype == 0 .AND. screen > 0) &
           WRITE (*, '(a, 5x, a, f10.2)') 'PDAF', '--- Effective sample size ', effN
 
+     CALL PDAF_timeit(51, 'old')
+
   ELSE
      ! Without observations, al ensemble member have the same weight
 
+     CALL PDAF_timeit(51, 'new')
      weights = 1/dim_ens
+     CALL PDAF_timeit(51, 'old')
      
   END IF haveobs
 
   CALL PDAF_timeit(12, 'old')
+  CALL PDAF_timeit(51, 'new')
 
 
   ! ****************************************
@@ -231,7 +249,7 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
 
      ! Perform the resampling 
      DO col = 1, dim_ens
-        ens_p(blklower : blkupper, col) = ens_blk(blklower : blkupper, IDs(col))
+        ens_p(blklower : blkupper, col) = ens_blk(1 : blkupper-blklower+1, IDs(col))
      END DO
      CALL PDAF_timeit(22, 'old')
 
@@ -252,6 +270,7 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
 
 
   CALL PDAF_timeit(10, 'old')
+  CALL PDAF_timeit(51, 'old')
 
 
 ! ********************

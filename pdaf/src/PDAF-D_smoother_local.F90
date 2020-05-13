@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_smoother_local.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_smoother_local.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_smoother_local --- Smoother extension for local square-root filters
@@ -84,15 +84,15 @@ SUBROUTINE PDAF_smoother_local(domain_p, step, dim_p, dim_l, dim_ens, &
 !EOP
 
 ! *** local variables ***
-  INTEGER :: member, col, row, lagcol ! Counters
-  INTEGER :: n_lags                   ! Available number of time instances for smoothing
+  INTEGER :: member, col, row, lagcol  ! Counters
+  INTEGER :: n_lags                    ! Available number of time instances for smoothing
   INTEGER :: maxblksize, blkupper, blklower  ! Variables for blocked ensemble update
-  INTEGER, SAVE :: allocflag = 0      ! Flag whether first time allocation is done
-  INTEGER, SAVE :: first = 1          ! Flag for very first call to routine
-  INTEGER, SAVE :: domain_save = 1    ! Index of domain from last call to routine
-  REAL :: invdimens                   ! Inverse of global ensemble size
-  REAL, ALLOCATABLE :: ens_blk(:,:)   ! Temporary block of state ensemble
-  REAL, ALLOCATABLE :: W_smooth(:,:) ! Weight matrix for smoothing
+  INTEGER, SAVE :: allocflag = 0       ! Flag whether first time allocation is done
+  INTEGER, SAVE :: first = 1           ! Flag for very first call to routine
+  INTEGER, SAVE :: domain_save = 1     ! Index of domain from last call to routine
+  REAL :: invdimens                    ! Inverse of global ensemble size
+  REAL, ALLOCATABLE :: ens_blk(:,:)    ! Temporary block of state ensemble
+  REAL, ALLOCATABLE :: W_smooth(:,:)   ! Weight matrix for smoothing
   INTEGER, SAVE :: mythread, nthreads  ! Thread variables for OpenMP
 
 !$OMP THREADPRIVATE(mythread, nthreads, allocflag, first, domain_save)
@@ -163,10 +163,12 @@ SUBROUTINE PDAF_smoother_local(domain_p, step, dim_p, dim_l, dim_ens, &
      smoothing: DO lagcol = 1, n_lags
 
         ! *** Get local ensemble ***
+        CALL PDAF_timeit(15, 'new')
         DO member = 1, dim_ens
            CALL U_g2l_state(step, domain_p, dim_p, sens_p(:, member, lagcol), dim_l, &
                 ens_l(:, member))
         END DO
+        CALL PDAF_timeit(15, 'old')
 
         ! Use block formulation for transformation
         blocking: DO blklower = 1, dim_l, maxblksize
@@ -188,10 +190,12 @@ SUBROUTINE PDAF_smoother_local(domain_p, step, dim_p, dim_l, dim_ens, &
         END DO blocking
 
         ! *** Initialize global ensemble ***
+        CALL PDAF_timeit(16, 'new')
         DO member = 1, dim_ens
            CALL U_l2g_state(step, domain_p, dim_l, ens_l(:, member), dim_p, &
                 sens_p(:, member, lagcol))
         END DO
+        CALL PDAF_timeit(16, 'old')
 
      END DO smoothing
      

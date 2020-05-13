@@ -1,4 +1,4 @@
-! Copyright (c) 2014-2019 Paul Kirchgessner
+! Copyright (c) 2014-2020 Paul Kirchgessner
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_assimilate_netf.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_assimilate_netf.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_assimilate_netf --- Interface to PDAF for NETF

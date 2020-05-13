@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger, lars.nerger@awi.de
+! Copyright (c) 2004-2020 Lars Nerger, lars.nerger@awi.de
 !
 ! This routine is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License
@@ -13,7 +13,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with this software.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF_sampleens.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF_sampleens.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_SampleEns --- Sample an ensemble from EOF modes

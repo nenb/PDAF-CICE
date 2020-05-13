@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_enkf_memtime.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_enkf_memtime.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_enkf_memtime --- Display timing and memory information for EnKF
@@ -68,18 +68,18 @@ SUBROUTINE PDAF_enkf_memtime(printtype)
      ! Generic part
      WRITE (*, '(//a, 21x, a)') 'PDAF', 'PDAF Timing information'
      WRITE (*, '(a, 10x, 45a)') 'PDAF', ('-', i=1, 45)
-     WRITE (*, '(a, 12x, a, F11.3, 1x, a)') &
-          'PDAF', 'Generate state ensemble:', pdaf_time_tot(1), 's'
+     WRITE (*, '(a, 20x, a, F11.3, 1x, a)') &
+          'PDAF', 'Initialize PDAF:', pdaf_time_tot(1), 's'
      IF (subtype_filter /= 5) THEN
-        WRITE (*, '(a, 18x, a, F11.3, 1x, a)') 'PDAF', 'Time of forecasts:', pdaf_time_tot(2), 's'
+        WRITE (*, '(a, 18x, a, F11.3, 1x, a)') 'PDAF', 'Ensemble forecast:', pdaf_time_tot(2), 's'
      END IF
 
      IF (filterpe) THEN
         ! Filter-specific part
-        WRITE (*, '(a, 14x, a, F11.3, 1x, a)') 'PDAF', 'Time of assimilations:', pdaf_time_tot(3), 's'
+        WRITE (*, '(a, 22x, a, F11.3, 1x, a)') 'PDAF', 'EnKF analysis:', pdaf_time_tot(3), 's'
 
         ! Generic part
-        WRITE (*, '(a, 16x, a, F11.3, 1x, a)') 'PDAF', 'Time of prepoststep:', pdaf_time_tot(5), 's'
+        WRITE (*, '(a, 24x, a, F11.3, 1x, a)') 'PDAF', 'Prepoststep:', pdaf_time_tot(5), 's'
      END IF
 
   ELSE IF (printtype == 2) THEN ptype
@@ -100,6 +100,40 @@ SUBROUTINE PDAF_enkf_memtime(printtype)
 
   ELSE IF (printtype == 3) THEN ptype
 
+! *******************************************************
+! *** Print timing information for call-back routines ***
+! *******************************************************
+
+     ! Generic part
+     WRITE (*, '(//a, 12x, a)') 'PDAF', 'PDAF Timing information - call-back routines'
+     WRITE (*, '(a, 8x, 52a)') 'PDAF', ('-', i=1, 52)
+     WRITE (*, '(a, 10x, a, 15x, F11.3, 1x, a)') 'PDAF', 'Initialize PDAF:', pdaf_time_tot(1), 's'
+     WRITE (*, '(a, 12x, a, 17x, F11.3, 1x, a)') 'PDAF', 'init_ens_pdaf:', pdaf_time_tot(39), 's'
+     IF (subtype_filter /= 5) THEN
+        WRITE (*, '(a, 10x, a, 13x, F11.3, 1x, a)') 'PDAF', 'Ensemble forecast:', pdaf_time_tot(2), 's'
+        WRITE (*, '(a, 12x, a, 5x, F11.3, 1x, a)') 'PDAF', 'MPI communication in PDAF:', pdaf_time_tot(19), 's'
+        WRITE (*, '(a, 12x, a, 9x, F11.3, 1x, a)') 'PDAF', 'distribute_state_pdaf:', pdaf_time_tot(40), 's'
+        WRITE (*, '(a, 12x, a, 12x, F11.3, 1x, a)') 'PDAF', 'collect_state_pdaf:', pdaf_time_tot(41), 's'
+        IF (.not.filterpe) WRITE (*, '(a, 7x, a)') 'PDAF', &
+             'Note: for filterpe=F, the time (2) includes the wait time for the analysis step'
+     END IF
+
+     IF (filterpe) THEN
+        ! Filter-specific part
+        WRITE (*, '(a, 10x, a, 17x, F11.3, 1x, a)') 'PDAF', 'EnKF analysis:', pdaf_time_tot(3), 's'
+        WRITE (*, '(a, 12x, a, 6x, F11.3, 1x, a)') 'PDAF', 'PDAF-internal operations:', pdaf_time_tot(51), 's'
+        WRITE (*, '(a, 12x, a, 13x, F11.3, 1x, a)') 'PDAF', 'init_dim_obs_pdaf:', pdaf_time_tot(43), 's'
+        WRITE (*, '(a, 12x, a, 19x, F11.3, 1x, a)') 'PDAF', 'obs_op_pdaf:', pdaf_time_tot(44), 's'
+        WRITE (*, '(a, 12x, a, 12x, F11.3, 1x, a)') 'PDAF', 'add_obs_error_pdaf:', pdaf_time_tot(45), 's'
+        WRITE (*, '(a, 12x, a, 17x, F11.3, 1x, a)') 'PDAF', 'init_obs_pdaf:', pdaf_time_tot(50), 's'
+        WRITE (*, '(a, 12x, a, 12x, F11.3, 1x, a)') 'PDAF', 'init_obscovar_pdaf:', pdaf_time_tot(49), 's'
+
+        ! Generic part B
+        WRITE (*, '(a, 10x, a, 14x, F11.3, 1x, a)') 'PDAF', 'prepoststep_pdaf:', pdaf_time_tot(5), 's'
+     END IF
+
+  ELSE IF (printtype == 4) THEN ptype
+
 ! *********************************************
 ! *** Print second-level timing information ***
 ! *********************************************
@@ -107,18 +141,17 @@ SUBROUTINE PDAF_enkf_memtime(printtype)
      ! Generic part
      WRITE (*, '(//a, 21x, a)') 'PDAF', 'PDAF Timing information'
      WRITE (*, '(a, 10x, 45a)') 'PDAF', ('-', i=1, 45)
-     WRITE (*, '(a, 13x, a, F11.3, 1x, a)') &
-          'PDAF', 'Generate state ensemble (1):', pdaf_time_tot(1), 's'
+     WRITE (*, '(a, 21x, a, F11.3, 1x, a)') 'PDAF', 'Initialize PDAF (1):', pdaf_time_tot(1), 's'
      IF (subtype_filter /= 5) THEN
-        WRITE (*, '(a, 19x, a, F11.3, 1x, a)') 'PDAF', 'Time of forecasts (2):', pdaf_time_tot(2), 's'
-        WRITE (*, '(a, 7x, a, F11.3, 1x, a)') 'PDAF', 'Time to collect/distribute ens (19):', pdaf_time_tot(19), 's'
+        WRITE (*, '(a, 19x, a, F11.3, 1x, a)') 'PDAF', 'Ensemble forecast (2):', pdaf_time_tot(2), 's'
+        WRITE (*, '(a, 12x, a, F11.3, 1x, a)') 'PDAF', 'MPI communication in PDAF (19):', pdaf_time_tot(19), 's'
         IF (.not.filterpe) WRITE (*, '(a, 7x, a)') 'PDAF', &
              'Note: for filterpe=F, the time (2) includes the wait time for the analysis step'
      END IF
 
      IF (filterpe) THEN
         ! Filter-specific part
-        WRITE (*, '(a, 15x, a, F11.3, 1x, a)') 'PDAF', 'Time of assimilations (3):', pdaf_time_tot(3), 's'
+        WRITE (*, '(a, 23x, a, F11.3, 1x, a)') 'PDAF', 'EnKF analysis (3):', pdaf_time_tot(3), 's'
         WRITE (*, '(a, 23x, a, F11.3, 1x, a)') 'PDAF', 'get mean state (11):', pdaf_time_tot(11), 's'
         IF (subtype_filter == 1) THEN
            WRITE (*, '(a, 17x, a, F11.3, 1x, a)') 'PDAF', 'compute HPH+R and HP (10):', pdaf_time_tot(10), 's'
@@ -130,11 +163,11 @@ SUBROUTINE PDAF_enkf_memtime(printtype)
         WRITE (*, '(a, 14x, a, F11.3, 1x, a)') 'PDAF', 'ensemble transformation (14):', pdaf_time_tot(14), 's'
 
         ! Generic part
-        WRITE (*, '(a, 17x, a, F11.3, 1x, a)') 'PDAF', 'Time of prepoststep (5):', pdaf_time_tot(5), 's'
+        WRITE (*, '(a, 25x, a, F11.3, 1x, a)') 'PDAF', 'Prepoststep (5):', pdaf_time_tot(5), 's'
      END IF
 
 
-  ELSE IF (printtype == 4) THEN ptype
+  ELSE IF (printtype == 5) THEN ptype
 
 ! *****************************************
 ! *** Print detailed timing information ***
@@ -143,18 +176,17 @@ SUBROUTINE PDAF_enkf_memtime(printtype)
      ! Generic part
      WRITE (*, '(//a, 21x, a)') 'PDAF', 'PDAF Timing information'
      WRITE (*, '(a, 10x, 45a)') 'PDAF', ('-', i=1, 45)
-     WRITE (*, '(a, 13x, a, F11.3, 1x, a)') &
-          'PDAF', 'Generate state ensemble (1):', pdaf_time_tot(1), 's'
+     WRITE (*, '(a, 21x, a, F11.3, 1x, a)') 'PDAF', 'Initialize PDAF (1):', pdaf_time_tot(1), 's'
      IF (subtype_filter /= 5) THEN
-        WRITE (*, '(a, 19x, a, F11.3, 1x, a)') 'PDAF', 'Time of forecasts (2):', pdaf_time_tot(2), 's'
-        WRITE (*, '(a, 7x, a, F11.3, 1x, a)') 'PDAF', 'Time to collect/distribute ens (19):', pdaf_time_tot(19), 's'
+        WRITE (*, '(a, 19x, a, F11.3, 1x, a)') 'PDAF', 'Ensemble forecast (2):', pdaf_time_tot(2), 's'
+        WRITE (*, '(a, 12x, a, F11.3, 1x, a)') 'PDAF', 'MPI communication in PDAF (19):', pdaf_time_tot(19), 's'
         IF (.not.filterpe) WRITE (*, '(a, 7x, a)') 'PDAF', &
              'Note: for filterpe=F, the time (2) includes the wait time for the analysis step'
      END IF
 
      IF (filterpe) THEN
         ! Filter-specific part
-        WRITE (*, '(a, 15x, a, F11.3, 1x, a)') 'PDAF', 'Time of assimilations (3):', pdaf_time_tot(3), 's'
+        WRITE (*, '(a, 23x, a, F11.3, 1x, a)') 'PDAF', 'EnKF analysis (3):', pdaf_time_tot(3), 's'
         WRITE (*, '(a, 23x, a, F11.3, 1x, a)') 'PDAF', 'get mean state (11):', pdaf_time_tot(11), 's'
         IF (subtype_filter == 1) THEN
            WRITE (*, '(a, 17x, a, F11.3, 1x, a)') 'PDAF', 'compute HPH+R and HP (10):', pdaf_time_tot(10), 's'
@@ -187,7 +219,7 @@ SUBROUTINE PDAF_enkf_memtime(printtype)
         END IF
 
         ! Generic part
-        WRITE (*, '(a, 17x, a, F11.3, 1x, a)') 'PDAF', 'Time of prepoststep (5):', pdaf_time_tot(5), 's'
+        WRITE (*, '(a, 25x, a, F11.3, 1x, a)') 'PDAF', 'Prepoststep (5):', pdaf_time_tot(5), 's'
      END IF
   END IF ptype
 

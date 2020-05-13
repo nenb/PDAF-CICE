@@ -74,7 +74,8 @@ OBJ_PDAF_GEN = 	PDAF-D_init.o \
 		PDAF-D_gather_obs_f2_flex.o \
 		PDAF-D_allreduce.o \
 		PDAF-D_deallocate.o \
-		PDAF-D_get_assim_flag.o
+		PDAF-D_get_assim_flag.o \
+		PDAF_get_localfilter.o
 
 # Specific PDAF-routines for SEIK
 OBJ_SEIK =	PDAF-D_seik_init.o \
@@ -267,10 +268,15 @@ OBJ_OBSGEN =	PDAF-D_genobs_init.o \
 		PDAF-D_generate_obs_si.o \
 		PDAF-D_gen_obs.o
 
+# Routines for PDAF-OMI
+OBJ_PDAFOMI =	PDAFomi_obs_f.o \
+		PDAFomi_obs_l.o \
+		PDAFomi_obs_op.o
+
 OBJ_PDAF =   $(OBJ_PDAF_GEN) $(OBJ_SEIK) $(OBJ_LSEIK) $(OBJ_SEEK) \
 		$(OBJ_ENKF) $(OBJ_ETKF) $(OBJ_LETKF) \
 		$(OBJ_ESTKF) $(OBJ_LESTKF) $(OBJ_LENKF) $(OBJ_NETF) $(OBJ_LNETF) \
-		$(OBJ_PF) $(OBJ_OBSGEN)
+		$(OBJ_PF) $(OBJ_OBSGEN) $(OBJ_PDAFOMI)
 
 ######################################################
 

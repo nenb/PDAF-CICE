@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_put_state_prepost.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_put_state_prepost.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_put_state_prepost --- Interface to transfer state to PDAF
@@ -56,10 +56,10 @@ SUBROUTINE PDAF_put_state_prepost(U_collect_state, U_prepoststep, outflag)
        ONLY: PDAF_timeit, PDAF_time_temp
   USE PDAF_mod_filter, &
        ONLY: dim_p, dim_obs, dim_ens, local_dim_ens, &
-       nsteps, step_obs, step, member, subtype_filter, &
+       nsteps, step_obs, step, member, member_save, subtype_filter, &
        state, eofV, eofU, screen, flag, initevol
   USE PDAF_mod_filtermpi, &
-       ONLY: mype_world, filterpe, dim_ens_l
+       ONLY: mype_world, filterpe, dim_ens_l, filter_no_model
 
   IMPLICIT NONE
   
@@ -89,6 +89,10 @@ SUBROUTINE PDAF_put_state_prepost(U_collect_state, U_prepoststep, outflag)
 ! **************************************************
 
   doevol: IF (nsteps > 0) THEN
+
+     ! Store member index for PDAF_get_memberid
+     member_save = member
+
      IF (subtype_filter /= 2 .AND. subtype_filter /= 3) THEN
         ! Save evolved state in ensemble matrix
         CALL U_collect_state(dim_p, eofV(1 : dim_p, member))
@@ -101,6 +105,10 @@ SUBROUTINE PDAF_put_state_prepost(U_collect_state, U_prepoststep, outflag)
   ELSE
      member = local_dim_ens + 1
   END IF doevol
+
+  IF (filter_no_model .AND. filterpe) THEN
+     member = local_dim_ens + 1
+  END IF
 
 
 ! ********************************************************

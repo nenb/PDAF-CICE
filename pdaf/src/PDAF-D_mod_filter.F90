@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_mod_filter.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_mod_filter.F90 421 2020-03-16 14:45:58Z lnerger $
 !BOP
 !
 ! !MODULE:
@@ -122,6 +122,8 @@ MODULE PDAF_mod_filter
   INTEGER :: firsttime = 1  ! Are the filter routines called for the first time?
   INTEGER :: initevol = 1   ! Initialize a new forecast phase?
   INTEGER :: member = 1     ! Which member of sub-ensemble to evolve
+  INTEGER :: member_get = 1 ! Which member of sub-ensemble to evolve (used in PDAF_get_state)
+  INTEGER :: member_save = 1 ! Store member index for quewry with PDAF_get_memberid
   INTEGER :: nsteps         ! Number of time steps to perform
   INTEGER :: cnt_steps      ! Number of time steps in current forecast phase
   INTEGER :: end_forecast   ! Whether to exit the forecasting
@@ -136,7 +138,8 @@ MODULE PDAF_mod_filter
   ! (0): Factor N^-1; (1): Factor (N-1)^-1 - Recommended is 1 for 
   ! a real ensemble filter, 0 is for compatibility with older PDAF versions
   LOGICAL :: ensemblefilter ! Whether the chosen filter is ensemble-based
-  CHARACTER(len=10) :: filterstr ! String defining the filter type
+  INTEGER :: localfilter = 0 ! Whether the chosen filter is domain-localized (1: yes)
+  CHARACTER(len=10) :: filterstr   ! String defining the filter type
 
   ! *** Filter fields ***
   REAL, ALLOCATABLE :: state(:)     ! PE-local model state
@@ -144,7 +147,7 @@ MODULE PDAF_mod_filter
   REAL, ALLOCATABLE :: eofU(:,:)    ! Matrix of eigenvalues from EOF computation
   REAL, TARGET, ALLOCATABLE :: eofV(:,:)    ! Ensemble matrix
                                     !    or matrix of eigenvectors from EOF computation
-  REAL(8), TARGET, ALLOCATABLE :: sens(:,:,:)  ! Ensemble matrix holding past times for smoothing
+  REAL, TARGET, ALLOCATABLE :: sens(:,:,:)  ! Ensemble matrix holding past times for smoothing
   REAL, ALLOCATABLE :: bias(:)      ! Model bias vector
 !EOP
 

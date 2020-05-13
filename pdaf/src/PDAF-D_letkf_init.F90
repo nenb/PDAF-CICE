@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_letkf_init.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_letkf_init.F90 421 2020-03-16 14:45:58Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_letkf_init --- PDAF-internal initialization of LETKF
@@ -38,7 +38,7 @@ SUBROUTINE PDAF_letkf_init(subtype, param_int, dim_pint, param_real, dim_preal, 
 !
 ! !USES:
   USE PDAF_mod_filter, &
-       ONLY: incremental, dim_ens, forget, &
+       ONLY: incremental, dim_ens, forget, localfilter, &
        type_forget, dim_bias_p, type_trans, dim_lag
 
   IMPLICIT NONE
@@ -107,6 +107,9 @@ SUBROUTINE PDAF_letkf_init(subtype, param_int, dim_pint, param_real, dim_preal, 
 
   ! Define whether filter is mode-based or ensemble-based
   ensemblefilter = .TRUE.
+
+  ! Define whether filter is domain localized
+  localfilter = 1
 
   ! Initialize flag for fixed-basis filters
   IF (subtype == 2 .OR. subtype == 3) THEN

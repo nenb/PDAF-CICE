@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_lseik_resample.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_lseik_resample.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_lseik_resample --- Perform LSEIK ensemble transformation
@@ -102,7 +102,7 @@ SUBROUTINE PDAF_lseik_resample(domain_p, subtype, dim_l, dim_ens, &
   REAL :: fac                         ! Temporary variable sqrt(dim_ens) or sqrt(rank)
   REAL    :: rdim_ens                 ! Inverse ensemble size as real
   INTEGER, SAVE :: lastdomain = -1    ! store domain index
-  LOGICAL:: screenout = .true.        ! Whether to print information to stdout
+  LOGICAL, SAVE :: screenout = .true. ! Whether to print information to stdout
   REAL, ALLOCATABLE :: omegaT(:,:)    ! Transpose of Omega
   REAL, ALLOCATABLE :: TA(:,:)        ! Temporary matrix
   REAL, ALLOCATABLE :: ens_block(:,:) ! Temporary blocked state ensemble
@@ -110,7 +110,7 @@ SUBROUTINE PDAF_lseik_resample(domain_p, subtype, dim_l, dim_ens, &
   REAL, ALLOCATABLE :: Ttrans(:,:)    ! Temporary matrix T^T
   REAL, ALLOCATABLE :: svals(:)       ! Singular values of Uinv
   REAL, ALLOCATABLE :: work(:)        ! Work array for SYEV
-  INTEGER, SAVE :: mythread, nthreads  ! Thread variables for OpenMP
+  INTEGER, SAVE :: mythread, nthreads ! Thread variables for OpenMP
 
 !$OMP THREADPRIVATE(mythread, nthreads, lastdomain, allocflag, screenout)
 
@@ -118,6 +118,8 @@ SUBROUTINE PDAF_lseik_resample(domain_p, subtype, dim_l, dim_ens, &
 ! *******************
 ! *** Preparation ***
 ! *******************
+
+  CALL PDAF_timeit(51, 'new')
 
 #if defined (_OPENMP)
   nthreads = omp_get_num_threads()
@@ -352,6 +354,7 @@ SUBROUTINE PDAF_lseik_resample(domain_p, subtype, dim_l, dim_ens, &
      flag = 1
 
   ENDIF CholeskyOK
+  CALL PDAF_timeit(51, 'old')
 
 
 ! ****************

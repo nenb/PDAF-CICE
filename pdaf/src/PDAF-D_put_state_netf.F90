@@ -1,4 +1,4 @@
-! Copyright (c) 2014-2019 Paul Kirchgessner
+! Copyright (c) 2014-2020 Paul Kirchgessner
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_put_state_netf.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_put_state_netf.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_put_state_netf --- Interface to transfer state to PDAF
@@ -61,7 +61,7 @@ SUBROUTINE PDAF_put_state_netf(U_collect_state, U_init_dim_obs, U_obs_op, &
        ONLY: PDAF_memcount
   USE PDAF_mod_filter, &
        ONLY: dim_p, dim_obs, dim_ens, local_dim_ens, &
-       nsteps, step_obs, step, member, subtype_filter, &
+       nsteps, step_obs, step, member, member_save, subtype_filter, &
        type_forget, initevol, state, eofV, &
        eofU, forget, screen, flag, &
        sens, dim_lag, cnt_maxlag
@@ -100,9 +100,17 @@ SUBROUTINE PDAF_put_state_netf(U_collect_state, U_init_dim_obs, U_obs_op, &
 ! **************************************************
 
   doevol: IF (nsteps > 0 ) THEN
+
+     CALL PDAF_timeit(41, 'new')
+
+     ! Store member index for PDAF_get_memberid
+     member_save = member
+
      ! Save evolved state in ensemble matrix
      CALL U_collect_state(dim_p, eofV(1 : dim_p, member))
   
+     CALL PDAF_timeit(41, 'old')
+
      member = member + 1
   ELSE
      member = local_dim_ens + 1

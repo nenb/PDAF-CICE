@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_put_state_enkf.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_put_state_enkf.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_put_state_enkf --- Interface to transfer state to PDAF
@@ -59,7 +59,7 @@ SUBROUTINE PDAF_put_state_enkf(U_collect_state, U_init_dim_obs, U_obs_op,  &
        ONLY: PDAF_timeit, PDAF_time_temp
   USE PDAF_mod_filter, &
        ONLY: dim_p, dim_obs, dim_ens, local_dim_ens, nsteps, &
-       step_obs, step, member, subtype_filter, initevol, &
+       step_obs, step, member, member_save, subtype_filter, initevol, &
        state, eofV, rank_ana_enkf, forget, screen, &
        flag, sens, dim_lag, cnt_maxlag
   USE PDAF_mod_filtermpi, &
@@ -99,10 +99,19 @@ SUBROUTINE PDAF_put_state_enkf(U_collect_state, U_init_dim_obs, U_obs_op,  &
 ! **************************************************
 
   doevol: IF (nsteps > 0) THEN
+
+     CALL PDAF_timeit(41, 'new')
+
      modelpes: IF (modelpe) THEN
+
+        ! Store member index for PDAF_get_memberid
+        member_save = member
+
         ! Save evolved state in ensemble matrix
         CALL U_collect_state(dim_p, eofV(1:dim_p, member))
      END IF modelpes
+
+     CALL PDAF_timeit(41, 'old')
 
      member = member + 1
   ELSE

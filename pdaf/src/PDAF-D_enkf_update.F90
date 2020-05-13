@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_enkf_update.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_enkf_update.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_enkf_update --- Control analysis update of the EnKF
@@ -127,8 +127,10 @@ SUBROUTINE  PDAF_enkf_update(step, dim_p, dim_obs_p, dim_ens, state_p, &
           U_add_obs_err, U_init_obs, U_init_obs_covar, screen, flag)
 
      ! *** Perform smoothing of past ensembles ***
+     CALL PDAF_timeit(51, 'new')
      CALL PDAF_smoother_enkf(dim_p, dim_ens, dim_lag, HXB, sens_p, &
           cnt_maxlag, forget, screen)
+     CALL PDAF_timeit(51, 'old')
   ELSE IF (subtype == 1) THEN
      ! *** analysis with representer method with 2m<n ***
      CALL PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &

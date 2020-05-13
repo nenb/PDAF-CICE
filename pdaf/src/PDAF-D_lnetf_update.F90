@@ -1,4 +1,4 @@
-! Copyright (c) 2014-2019 Paul Kirchgessner
+! Copyright (c) 2014-2020 Paul Kirchgessner
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_lnetf_update.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_lnetf_update.F90 384 2020-02-26 17:17:24Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_lnetf_update --- Control analysis update of the LNETF
@@ -152,6 +152,7 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
   ! Variables for statistical information on local analysis
   INTEGER :: obsstats(4)           ! PE-local statistics
   INTEGER :: obsstats_g(4)         ! Global statistics
+  INTEGER :: n_domains_stats(4)    ! Gobal statistics for number of analysis domains
   REAL :: invforget                ! inverse forgetting factor
   REAL, ALLOCATABLE :: n_eff(:)    ! Effective sample size for each local domain
   LOGICAL, ALLOCATABLE :: MASK(:)  ! Mask for effective sample sizes > 0
@@ -201,7 +202,9 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
 
   ! Query number of analysis domains for the local analysis
   ! in the PE-local domain
+  CALL PDAF_timeit(42, 'new')
   CALL U_init_n_domains_p(step, n_domains_p)
+  CALL PDAF_timeit(42, 'old')
 
   ! Initialize effective sample size
   ALLOCATE(n_eff(n_domains_p))
@@ -213,8 +216,31 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
         WRITE (*, '(a, i7, 3x, a)') &
              'PDAF ', step, 'Assimilating observations - LNETF analysis using T-matrix'
      END IF
-     WRITE (*, '(a, 5x, a, i6, a, i10)') &
-          'PDAF ', '--- PE-domain:', mype, ' number of analysis domains:', n_domains_p
+     IF (screen<3) THEN
+        IF (npes_filter>1) THEN
+           CALL MPI_Reduce(n_domains_p, n_domains_stats(1), 1, MPI_INTEGER, MPI_MIN, &
+                0, COMM_filter, MPIerr)
+           CALL MPI_Reduce(n_domains_p, n_domains_stats(2), 1, MPI_INTEGER, MPI_MAX, &
+                0, COMM_filter, MPIerr)
+           CALL MPI_Reduce(n_domains_p, n_domains_stats(3), 1, MPI_INTEGER, MPI_SUM, &
+                0, COMM_filter, MPIerr)
+           IF (mype == 0) THEN
+              WRITE (*, '(a, 5x, a, i6, 1x, i6, 1x, f9.1)') &
+                   'PDAF', '--- local analysis domains (min/max/avg):', n_domains_stats(1:2), &
+                   REAL(n_domains_stats(3)) / REAL(npes_filter)
+           END IF
+        ELSE
+           ! This is a work around for working with nullmpi.F90
+           IF (mype == 0) THEN
+              WRITE (*, '(a, 5x, a, i6)') &
+                   'PDAF', '--- local analysis domains:', n_domains_p
+           END IF
+        END IF
+
+     ELSE
+        WRITE (*, '(a, 5x, a, i6, a, i10)') &
+             'PDAF', '--- PE-domain:', mype, ' number of analysis domains:', n_domains_p
+     END IF
   END IF
 
 
@@ -222,21 +248,19 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
 
   ! Get observation dimension for all observations required 
   ! for the loop of local analyses on the PE-local domain.
+  CALL PDAF_timeit(43, 'new')
   CALL U_init_dim_obs(step, dim_obs_f)
+  CALL PDAF_timeit(43, 'old')
 
-  IF (screen > 0) THEN
-     IF (screen<=2 .AND. mype == 0) THEN
-        WRITE (*, '(a, 5x, a, i6, a, i10)') &
-             'PDAF', '--- PE-Domain:', mype, &
-             ' dimension of PE-local full obs. vector', dim_obs_f
-     ELSE IF (screen>2) THEN
-        WRITE (*, '(a, 5x, a, i6, a, i10)') &
-             'PDAF', '--- PE-Domain:', mype, &
-             ' dimension of PE-local full obs. vector', dim_obs_f
-     END IF
+  IF (screen > 2) THEN
+     WRITE (*, '(a, 5x, a, i6, a, i10)') &
+          'PDAF', '--- PE-Domain:', mype, &
+          ' dimension of PE-local full obs. vector', dim_obs_f
   END IF
 
   IF (dim_lag>0) THEN
+     CALL PDAF_timeit(44, 'new')
+
      ! For the smoother get observed uninflated ensemble
      ALLOCATE(HX_noinfl_f(dim_obs_f, dim_ens))
      IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_obs_f * dim_ens)
@@ -251,7 +275,10 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
      END DO ENSS
 
      CALL PDAF_timeit(27, 'old') 
+     CALL PDAF_timeit(44, 'old')
   END IF
+
+  CALL PDAF_timeit(51, 'new')
 
   ! Apply covariance inflation to global ens (only if prior infl is chosen)
   ! returns the full ensemble with unchanged mean, but inflated covariance
@@ -261,9 +288,13 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
      CALL PDAF_timeit(14, 'old')
   ENDIF
 
+  CALL PDAF_timeit(51, 'old')
+
   ! HX = [Hx_1 ... Hx_(r+1)] for full DIM_OBS_F region on PE-local domain
   ALLOCATE(HX_f(dim_obs_f, dim_ens))
   IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_obs_f * dim_ens)
+
+  CALL PDAF_timeit(44, 'new')
 
   ENS: DO member = 1,dim_ens
      ! Store member index to make it accessible with PDAF_get_obsmemberid
@@ -274,6 +305,9 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
      CALL PDAF_timeit(12, 'old') 
   END DO ENS
 
+  CALL PDAF_timeit(44, 'old')
+
+  CALL PDAF_timeit(51, 'new')
   CALL PDAF_timeit(11, 'new')
 
   ! *** Compute mean forecast state
@@ -307,6 +341,7 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
   END IF
 
   CALL PDAF_timeit(13, 'old')
+  CALL PDAF_timeit(51, 'old')
 
   CALL PDAF_timeit(4, 'old')
 
@@ -343,13 +378,16 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
   localanalysis: DO domain_p = 1, n_domains_p    
 
      ! local state dimension
+     CALL PDAF_timeit(45, 'new')
      CALL U_init_dim_l(step, domain_p, dim_l)
+     CALL PDAF_timeit(45, 'old')
 
      ! Get observation dimension for local domain
      CALL PDAF_timeit(9, 'new')
      CALL U_init_dim_obs_l(domain_p, step, dim_obs_f, dim_obs_l)
      CALL PDAF_timeit(9, 'old')
 
+     CALL PDAF_timeit(51, 'new')
      ! Gather statistical information on local observations
 !$OMP CRITICAL
      IF (dim_obs_l > obsstats(4)) obsstats(4) = dim_obs_l
@@ -365,6 +403,7 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
      ALLOCATE(ens_l(dim_l, dim_ens))
      ALLOCATE(state_l(dim_l))
      IF (allocflag_l == 0) CALL PDAF_memcount(3, 'r', dim_l*dim_ens + dim_l)
+     CALL PDAF_timeit(51, 'old')
 
      CALL PDAF_timeit(15, 'new')
 
@@ -383,6 +422,7 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
      IF (dim_obs_l == 0) THEN
         ! UNOBSERVED DOMAIN
 
+        CALL PDAF_timeit(51, 'old')
         CALL PDAF_timeit(7, 'new')
 
         ! Depending on type_forget, inflation on unobserved domain has to be inverted or applied here
@@ -397,6 +437,7 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
         ENDIF
 
         CALL PDAF_timeit(7, 'old')
+        CALL PDAF_timeit(51, 'old')
 
      ELSE     
         ! OBSERVED DOMAIN
@@ -431,17 +472,21 @@ SUBROUTINE  PDAF_lnetf_update(step, dim_p, dim_obs_f, dim_ens, &
      END DO
     
      CALL PDAF_timeit(16, 'old')
+     CALL PDAF_timeit(51, 'new')
      CALL PDAF_timeit(18, 'new')
 
      ! *** Perform smoothing of past ensembles ***
-     CALL PDAF_smoother_lnetf(domain_p, step, dim_p, dim_l, dim_ens, &
-          dim_lag, TA_noinfl_l, ens_l, sens_p, cnt_maxlag, &
-          U_g2l_state, U_l2g_state, screen)
+     IF (dim_lag>0) THEN
+        CALL PDAF_smoother_lnetf(domain_p, step, dim_p, dim_l, dim_ens, &
+             dim_lag, TA_noinfl_l, ens_l, sens_p, cnt_maxlag, &
+             U_g2l_state, U_l2g_state, screen)
+     END IF
 
      CALL PDAF_timeit(18, 'old')
 
      ! clean up
      DEALLOCATE(ens_l, state_l)
+     CALL PDAF_timeit(51, 'old')
 
      ! Set allocflag
      allocflag_l = 1

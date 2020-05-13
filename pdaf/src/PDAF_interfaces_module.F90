@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF_interfaces_module.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF_interfaces_module.F90 421 2020-03-16 14:45:58Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_interfaces_module --- Interface definitions for PDAF
@@ -935,6 +935,12 @@ MODULE PDAF_interfaces_module
      SUBROUTINE PDAF_generate_obs_si(flag)
        INTEGER, INTENT(inout) :: flag    ! Status flag
      END SUBROUTINE PDAF_generate_obs_si
+  END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_get_localfiler(lfilter)
+       INTEGER, INTENT(out) :: lfilter   ! Whether the filter is domain-localized
+     END SUBROUTINE PDAF_get_localfiler
   END INTERFACE
 
 END MODULE PDAF_interfaces_module

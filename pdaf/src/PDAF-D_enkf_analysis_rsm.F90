@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_enkf_analysis_rsm.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_enkf_analysis_rsm.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_enkf_analysis_rsm --- Perform EnKF analysis step
@@ -135,6 +135,8 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
 ! *** INITIALIZATION ***
 ! **********************
 
+  CALL PDAF_timeit(51, 'new')
+
   IF (mype == 0 .AND. screen > 0) THEN
      WRITE (*, '(a, i7, 3x, a)') &
           'PDAF ', step, 'Assimilating observations - EnKF small-m version'
@@ -151,14 +153,20 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
   invdim_ensm1 = 1.0 / (REAL(dim_ens - 1))
   sqrtinvforget = SQRT(1.0 / forget)
 
+  CALL PDAF_timeit(51, 'old')
+
 
 ! *********************************
 ! *** Get observation dimension ***
 ! *********************************
 
+  CALL PDAF_timeit(43, 'new')
   CALL U_init_dim_obs(step, dim_obs_p)
+  CALL PDAF_timeit(43, 'old')
 
-  IF (screen > 0) THEN
+  CALL PDAF_timeit(51, 'new')
+
+  IF (screen > 2) THEN
      WRITE (*, '(a, 5x, a13, 1x, i6, 1x, a, i10)') &
           'PDAF','--- PE-domain', mype, 'dimension of observation vector', dim_obs_p
   END IF
@@ -232,6 +240,9 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
 
   END DO ENSa
 
+  CALL PDAF_timeit(51, 'old')
+  CALL PDAF_timeit(44, 'new')
+
   ENSb: DO member = 1, dim_ens
      ! Store member index to make it accessible with PDAF_get_obsmemberid
      obs_member = member
@@ -240,6 +251,9 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
      ! stored in RESID_P for compactness
      CALL U_obs_op(step, dim_p, dim_obs_p, ens_p(:, member), resid_p(:, member))
   END DO ENSb
+
+  CALL PDAF_timeit(44, 'old')
+  CALL PDAF_timeit(51, 'new')
 
   ! compute mean of ensemble projected on obseration space
   ALLOCATE(HXmean_p(dim_obs_p))
@@ -286,12 +300,16 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
        0.0, HPH, dim_obs)
   CALL PDAF_timeit(32, 'old')
 
+  CALL PDAF_timeit(51, 'old')
+
   DEALLOCATE(XminMean_p)
 
 
   ! *** Add observation error covariance ***
   ! ***       HPH^T = (HPH + R)          ***
+  CALL PDAF_timeit(46, 'new')
   CALL U_add_obs_err(step, dim_obs, HPH)
+  CALL PDAF_timeit(46, 'old')
 
   CALL PDAF_timeit(10, 'old')
 
@@ -322,21 +340,28 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
      obs_member = member
 
      ! Project state onto observation space
+     CALL PDAF_timeit(44, 'new')
      CALL U_obs_op(step, dim_p, dim_obs_p, ens_p(:, member), m_state_p)
+     CALL PDAF_timeit(44, 'old')
 
      ! get residual as difference of observation and
      ! projected state
+     CALL PDAF_timeit(51, 'new')
      resid_p(:, member) = resid_p(:, member) - m_state_p(:)
+     CALL PDAF_timeit(51, 'old')
   END DO
   DEALLOCATE(m_state_p)
 
   ! Allgather residual
+  CALL PDAF_timeit(51, 'new')
   CALL PDAF_enkf_gather_resid(dim_obs, dim_obs_p, dim_ens, resid_p, resid)
+  CALL PDAF_timeit(51, 'old')
 
   DEALLOCATE(resid_p)
 
   CALL PDAF_timeit(12, 'old')
   CALL PDAF_timeit(14, 'new')
+  CALL PDAF_timeit(51, 'new')
 
 
   whichupdate: IF (rank_ana > 0) THEN
@@ -494,6 +519,7 @@ SUBROUTINE PDAF_enkf_analysis_rsm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
      
   END IF whichupdate
 
+  CALL PDAF_timeit(51, 'old')
   CALL PDAF_timeit(14, 'old')
 
 

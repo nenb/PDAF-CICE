@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_letkf_update.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_letkf_update.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_letkf_update --- Control analysis update of the LETKF
@@ -63,7 +63,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
        ONLY: type_trans, filterstr, obs_member
   USE PDAF_mod_filtermpi, &
        ONLY: mype, dim_ens_l, npes_filter, COMM_filter, MPIerr, &
-       MPI_SUM, MPI_MAX, MPI_INTEGER
+       MPI_SUM, MPI_MAX, MPI_MIN, MPI_INTEGER
 
   IMPLICIT NONE
 
@@ -155,6 +155,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
   ! obsstats(2): Local domains without observations
   ! obsstats(3): Sum of all available observations for all domains
   ! obsstats(4): Maximum number of observations over all domains
+  INTEGER :: n_domains_stats(4)    ! Gobal statistics for number of analysis domains
   REAL, ALLOCATABLE :: Uinv_l(:,:) ! thread-local matrix Uinv
   REAL :: state_inc_p_dummy        ! Dummy variable to avoid compiler warning
  
@@ -166,6 +167,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
   ! Initialize variable to prevent compiler warning
   state_inc_p_dummy = state_inc_p(1)
 
+  CALL PDAF_timeit(51, 'new')
 
   fixed_basis: IF (subtype == 2 .OR. subtype == 3) THEN
      ! *** Add mean/central state to ensemble members ***
@@ -175,6 +177,8 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
         END DO
      END DO
   END IF fixed_basis
+
+  CALL PDAF_timeit(51, 'old')
 
 
 ! *************************************
@@ -209,7 +213,9 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
 
   ! Query number of analysis domains for the local analysis
   ! in the PE-local domain
+  CALL PDAF_timeit(42, 'new')
   CALL U_init_n_domains_p(step, n_domains_p)
+  CALL PDAF_timeit(42, 'old')
   
   IF (screen > 0) THEN
      IF (mype == 0) THEN
@@ -224,8 +230,31 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
                 'PDAF ', step, 'LETKF analysis for fixed covariance matrix'
         END IF
      END IF
-     WRITE (*, '(a, 5x, a, i6, a, i10)') &
-          'PDAF ', '--- PE-domain:', mype, ' number of analysis domains:', n_domains_p
+     IF (screen<3) THEN
+        IF (npes_filter>1) THEN
+           CALL MPI_Reduce(n_domains_p, n_domains_stats(1), 1, MPI_INTEGER, MPI_MIN, &
+                0, COMM_filter, MPIerr)
+           CALL MPI_Reduce(n_domains_p, n_domains_stats(2), 1, MPI_INTEGER, MPI_MAX, &
+                0, COMM_filter, MPIerr)
+           CALL MPI_Reduce(n_domains_p, n_domains_stats(3), 1, MPI_INTEGER, MPI_SUM, &
+                0, COMM_filter, MPIerr)
+           IF (mype == 0) THEN
+              WRITE (*, '(a, 5x, a, i6, 1x, i6, 1x, f9.1)') &
+                   'PDAF', '--- local analysis domains (min/max/avg):', n_domains_stats(1:2), &
+                   REAL(n_domains_stats(3)) / REAL(npes_filter)
+           END IF
+        ELSE
+           ! This is a work around for working with nullmpi.F90
+           IF (mype == 0) THEN
+              WRITE (*, '(a, 5x, a, i6)') &
+                   'PDAF', '--- local analysis domains:', n_domains_p
+           END IF
+        END IF
+
+     ELSE
+        WRITE (*, '(a, 5x, a, i6, a, i10)') &
+             'PDAF', '--- PE-domain:', mype, ' number of analysis domains:', n_domains_p
+     END IF
   END IF
 
 
@@ -233,23 +262,21 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
 
   ! Get observation dimension for all observations required 
   ! for the loop of local analyses on the PE-local domain.
+  CALL PDAF_timeit(43, 'new')
   CALL U_init_dim_obs(step, dim_obs_f)
+  CALL PDAF_timeit(43, 'old')
 
-  IF (screen > 0) THEN
-     IF (screen<=2 .AND. mype == 0) THEN
-        WRITE (*, '(a, 5x, a, i6, a, i10)') &
-             'PDAF', '--- PE-Domain:', mype, &
-             ' dimension of PE-local full obs. vector', dim_obs_f
-     ELSE IF (screen>2) THEN
-        WRITE (*, '(a, 5x, a, i6, a, i10)') &
-             'PDAF', '--- PE-Domain:', mype, &
-             ' dimension of PE-local full obs. vector', dim_obs_f
-     END IF
+  IF (screen > 2) THEN
+     WRITE (*, '(a, 5x, a, i6, a, i10)') &
+          'PDAF', '--- PE-Domain:', mype, &
+          ' dimension of PE-local full obs. vector', dim_obs_f
   END IF
 
   ! HX = [Hx_1 ... Hx_(r+1)] for full DIM_OBS_F region on PE-local domain
   ALLOCATE(HX_f(dim_obs_f, dim_ens))
   IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_obs_f * dim_ens)
+
+  CALL PDAF_timeit(44, 'new')
 
   ENS: DO member = 1,dim_ens
      ! Store member index to make it accessible with PDAF_get_obsmemberid
@@ -259,6 +286,9 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
      CALL U_obs_op(step, dim_p, dim_obs_f, ens_p(:, member), HX_f(:, member))
   END DO ENS
 
+  CALL PDAF_timeit(44, 'old')
+
+  CALL PDAF_timeit(51, 'new')
   CALL PDAF_timeit(11, 'new')
 
   ! *** Compute mean forecast state
@@ -283,6 +313,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
         HXbar_f(row) = HXbar_f(row) + invdimens * HX_f(row, member)
      END DO
   END DO
+  CALL PDAF_timeit(51, 'old')
 
   ! Set forgetting factor globally
   forget_ana = forget
@@ -291,7 +322,9 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
      IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_obs_f)
 
      ! get observation vector
+     CALL PDAF_timeit(50, 'new')
      CALL U_init_obs(step, dim_obs_f, obs_f)
+     CALL PDAF_timeit(50, 'old')
 
      ! Set FORGET
      CALL PDAF_set_forget(step, filterstr, dim_obs_f, dim_ens, HX_f, &
@@ -302,6 +335,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
 
 
   ! *** Initialize random transformation matrix
+  CALL PDAF_timeit(51, 'new')
   CALL PDAF_timeit(33, 'new')
   ALLOCATE(rndmat(dim_ens, dim_ens))
   IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_ens**2)
@@ -329,6 +363,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
   END IF rnd_store
 
   CALL PDAF_timeit(33, 'old')
+  CALL PDAF_timeit(51, 'old')
 
   CALL PDAF_timeit(4, 'old')
 
@@ -356,13 +391,16 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
   localanalysis: DO domain_p = 1, n_domains_p
 
      ! local state dimension
+     CALL PDAF_timeit(45, 'new')
      CALL U_init_dim_l(step, domain_p, dim_l)
+     CALL PDAF_timeit(45, 'old')
 
      ! Get observation dimension for local domain
      CALL PDAF_timeit(9, 'new')
      CALL U_init_dim_obs_l(domain_p, step, dim_obs_f, dim_obs_l)
      CALL PDAF_timeit(9, 'old')
 
+     CALL PDAF_timeit(51, 'new')
      ! Gather statistical information on local observations
 !$OMP CRITICAL
      IF (dim_obs_l > obsstats(4)) obsstats(4) = dim_obs_l
@@ -378,6 +416,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
      ALLOCATE(ens_l(dim_l, dim_ens))
      ALLOCATE(state_l(dim_l))
      ALLOCATE(stateinc_l(dim_l))
+     CALL PDAF_timeit(51, 'old')
 
      CALL PDAF_timeit(15, 'new')
 
@@ -436,6 +475,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
 
      CALL PDAF_timeit(16, 'old')
      CALL PDAF_timeit(17, 'new')
+     CALL PDAF_timeit(51, 'new')
 
      ! *** Perform smoothing of past ensembles ***
      CALL PDAF_smoother_local(domain_p, step, dim_p, dim_l, dim_ens, &
@@ -446,8 +486,11 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
 
      ! clean up
      DEALLOCATE(ens_l, state_l, stateinc_l)
+     CALL PDAF_timeit(51, 'old')
 
   END DO localanalysis
+
+  CALL PDAF_timeit(51, 'new')
 
 !$OMP CRITICAL
   ! Set Uinv - required for subtype=3
@@ -494,6 +537,7 @@ SUBROUTINE  PDAF_letkf_update(step, dim_p, dim_obs_f, dim_ens, &
              'PDAF', '--- analysis/re-init duration:', PDAF_time_temp(3), 's'
      END IF
   END IF
+  CALL PDAF_timeit(51, 'old')
 
 ! *** Clean up from local analysis update ***
   DEALLOCATE(HX_f, HXbar_f, rndmat)

@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_put_state_seek.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_put_state_seek.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_put_state_seek --- Interface to transfer state to PDAF
@@ -61,7 +61,7 @@ SUBROUTINE PDAF_put_state_seek(U_collect_state, U_init_dim_obs, U_obs_op, &
        ONLY: PDAF_timeit, PDAF_time_temp
   USE PDAF_mod_filter, &
        ONLY: dim_p, dim_obs, dim_eof, local_dim_ens, nsteps, &
-       step_obs, step, member, subtype_filter, &
+       step_obs, step, member, member_save, subtype_filter, &
        int_rediag, incremental, initevol, epsilon, &
        state, eofV, eofU, forget, screen, flag
   USE PDAF_mod_filtermpi, &
@@ -101,6 +101,10 @@ SUBROUTINE PDAF_put_state_seek(U_collect_state, U_init_dim_obs, U_obs_op, &
 
   doevol1: IF (nsteps > 0) THEN
      modelpes: IF (modelpe) THEN
+
+        ! Store member index for PDAF_get_memberid
+        member_save = member
+
         IF ((task_id == statetask) .AND. (member == local_dim_ens)) THEN
            ! save evolved state fields in state vector
            CALL U_collect_state(dim_p, state)

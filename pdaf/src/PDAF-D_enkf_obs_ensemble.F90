@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_enkf_obs_ensemble.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_enkf_obs_ensemble.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_enkf_obs_ensemble --- Generate ensemble of observations for EnKF
@@ -44,6 +44,8 @@ SUBROUTINE PDAF_enkf_obs_ensemble(step, dim_obs_p, dim_obs, dim_ens, m_ens_p, &
 ! (Defines BLAS/LAPACK routines and MPI_REALTYPE)
 #include "typedefs.h"
 
+  USE PDAF_timer, &
+       ONLY: PDAF_timeit
   USE PDAF_memcounting, &
        ONLY: PDAF_memcount
   USE PDAF_mod_filtermpi, &
@@ -95,6 +97,8 @@ SUBROUTINE PDAF_enkf_obs_ensemble(step, dim_obs_p, dim_obs, dim_ens, m_ens_p, &
 ! *** INITIALIZATION ***
 ! **********************
 
+  CALL PDAF_timeit(51, 'new')
+
   IF (mype == 0 .AND. screen > 0) &
        WRITE (*, '(a, 5x, a)') 'PDAF', '--- Generate ensemble of observations'
 
@@ -116,19 +120,27 @@ SUBROUTINE PDAF_enkf_obs_ensemble(step, dim_obs_p, dim_obs, dim_ens, m_ens_p, &
      allocflag = 1
   END IF
 
+  CALL PDAF_timeit(51, 'old')
+
 
 ! *************************************
 ! *** generate observation ensemble ***
 ! *************************************
 
   ! *** get current observation vector ***
+  CALL PDAF_timeit(50, 'new')
   CALL U_init_obs(step, dim_obs_p, m_state_p)
+  CALL PDAF_timeit(50, 'old')
 
   ! *** Get current observation covariance matrix ***
   ! *** We initialize the global observation error covariance matrix
   ! *** to avoid a parallelization of the possible eigendecomposition.
+  CALL PDAF_timeit(49, 'new')
   CALL U_init_obs_covar(step, dim_obs, dim_obs_p, covar, m_state_p, &
        isdiag)
+  CALL PDAF_timeit(49, 'old')
+
+  CALL PDAF_timeit(51, 'new')
 
   diagA: IF (.NOT. isdiag) THEN
      ! *** compute Eigendecomposition of covariance matrix ***
@@ -195,6 +207,7 @@ SUBROUTINE PDAF_enkf_obs_ensemble(step, dim_obs_p, dim_obs, dim_ens, m_ens_p, &
      DEALLOCATE(local_dim_obs, local_dis)
   END IF ensemble
 
+  CALL PDAF_timeit(51, 'old')
 
 ! ****************
 ! *** clean up ***

@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_seik_update.F90 192 2019-07-04 06:45:09Z lnerger $
+!$Id: PDAF-D_seik_update.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_seik_update --- Control analysis update of the SEIK filter
@@ -100,6 +100,8 @@ SUBROUTINE  PDAF_seik_update(step, dim_p, dim_obs_p, dim_ens, rank, &
 ! *** For fixed error space basis compute ensemble states ***
 ! ***********************************************************
 
+  CALL PDAF_timeit(51, 'new')
+
   fixed_basis: IF (subtype == 2 .OR. subtype == 3) THEN
      ! *** Add mean/central state to ensemble members ***
      DO j = 1, dim_ens
@@ -108,6 +110,8 @@ SUBROUTINE  PDAF_seik_update(step, dim_p, dim_obs_p, dim_ens, rank, &
         END DO
      END DO
   END IF fixed_basis
+
+  CALL PDAF_timeit(51, 'old')
 
 
 ! **********************
@@ -161,6 +165,7 @@ SUBROUTINE  PDAF_seik_update(step, dim_p, dim_obs_p, dim_ens, rank, &
   END IF
 
 ! *** Resample the state ensemble
+  CALL PDAF_timeit(51, 'new')
   CALL PDAF_timeit(4, 'new')
   IF (subtype == 0 .OR. subtype == 2 .OR. subtype == 3 .OR. subtype == 5) THEN
      CALL PDAF_seik_resample_newT(subtype, dim_p, dim_ens, rank, &
@@ -170,6 +175,7 @@ SUBROUTINE  PDAF_seik_update(step, dim_p, dim_obs_p, dim_ens, rank, &
           Uinv, state_p, ens_p, type_sqrt, screen, flag)
   END IF
   CALL PDAF_timeit(4, 'old')
+  CALL PDAF_timeit(51, 'old')
   IF (mype == 0 .AND. screen > 1) THEN
      WRITE (*, '(a, 5x, a, F10.3, 1x, a)') &
           'PDAF', '--- resample duration:', PDAF_time_temp(4), 's'

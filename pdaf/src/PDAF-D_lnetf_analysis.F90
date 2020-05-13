@@ -1,4 +1,4 @@
-! Copyright (c) 2014-2019 Paul Kirchgessner
+! Copyright (c) 2014-2020 Paul Kirchgessner
 !
 ! This file is part of PDAF.
 !
@@ -95,25 +95,25 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
 !EOP
        
 ! *** local variables ***
-  INTEGER :: i, j, member, col, row  ! Counters
-  INTEGER, SAVE :: allocflag = 0     ! Flag whether first time allocation is done
-  INTEGER :: syev_info               ! Status flag for SYEV
-  INTEGER :: ldwork                  ! Size of work array for SYEV
+  INTEGER :: i, j, member, col, row    ! Counters
+  INTEGER, SAVE :: allocflag = 0       ! Flag whether first time allocation is done
+  INTEGER :: syev_info                 ! Status flag for SYEV
+  INTEGER :: ldwork                    ! Size of work array for SYEV
   INTEGER :: maxblksize, blkupper, blklower  ! Variables for blocked ensemble update
-  LOGICAL :: screenout = .TRUE.      ! Whether to print information to stdout
-  REAL :: n_eff                      ! Effective sample size
-  REAL :: fac                        ! Multiplication factor
-  REAL :: weight                     ! Ensemble weight (likelihood)
-  REAL, ALLOCATABLE :: obs_l(:)      ! local observation vector
-  REAL, ALLOCATABLE :: ens_blk(:,:)  ! Temporary block of state ensemble
-  REAL, ALLOCATABLE :: svals(:)      ! Singular values of Uinv
-  REAL, ALLOCATABLE :: work(:)       ! Work array for SYEV
-  REAL, ALLOCATABLE :: A(:,:)        ! Weight transform matrix
-  REAL, ALLOCATABLE :: resid_i(:)    ! Residual
-  REAL, ALLOCATABLE :: T_tmp(:,:)    ! Temporary matrix
-  REAL, ALLOCATABLE :: weights(:)    ! weight vector
-  INTEGER , SAVE :: lastdomain = -1  !save domain index
-  REAL :: total_weight               ! Sum of weight
+  LOGICAL, SAVE :: screenout = .true.  ! Whether to print information to stdout
+  REAL :: n_eff                        ! Effective sample size
+  REAL :: fac                          ! Multiplication factor
+  REAL :: weight                       ! Ensemble weight (likelihood)
+  REAL, ALLOCATABLE :: obs_l(:)        ! local observation vector
+  REAL, ALLOCATABLE :: ens_blk(:,:)    ! Temporary block of state ensemble
+  REAL, ALLOCATABLE :: svals(:)        ! Singular values of Uinv
+  REAL, ALLOCATABLE :: work(:)         ! Work array for SYEV
+  REAL, ALLOCATABLE :: A(:,:)          ! Weight transform matrix
+  REAL, ALLOCATABLE :: resid_i(:)      ! Residual
+  REAL, ALLOCATABLE :: T_tmp(:,:)      ! Temporary matrix
+  REAL, ALLOCATABLE :: weights(:)      ! weight vector
+  INTEGER , SAVE :: lastdomain = -1    ! save domain index
+  REAL :: total_weight                 ! Sum of weight
   INTEGER, SAVE :: mythread, nthreads  ! Thread variables for OpenMP
 
 !$OMP THREADPRIVATE(mythread, nthreads, lastdomain, allocflag, screenout)
@@ -122,6 +122,8 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
 ! *******************
 ! *** Preparation ***
 ! *******************
+
+  CALL PDAF_timeit(51, 'new')
 
 #if defined (_OPENMP)
   nthreads = omp_get_num_threads()
@@ -148,6 +150,8 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
      END IF
 #endif
   END IF
+
+  CALL PDAF_timeit(51, 'new')
 
 
   ! **********************************************
@@ -176,16 +180,22 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   CALC_w: DO member = 1,dim_ens
 
      ! Restrict global state to local state
+     CALL PDAF_timeit(46, 'new')
      CALL U_g2l_obs(domain_p, step, dim_obs_f, dim_obs_l, HX_f(:,member), resid_i)
+     CALL PDAF_timeit(46, 'old')
 
      ! Calculate local residual  
      resid_i = obs_l - resid_i
 
      ! Compute likelihood
+     CALL PDAF_timeit(47, 'new')
      CALL U_likelihood_l(domain_p, step, dim_obs_l, obs_l, resid_i, weight)
+     CALL PDAF_timeit(47, 'old')
      weights(member) = weight
 
   END DO CALC_w
+
+  CALL PDAF_timeit(51, 'new')
 
   ! Normalize weights
   total_weight = 0.0
@@ -202,6 +212,7 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
 
   DEALLOCATE(obs_l, resid_i)
 
+  CALL PDAF_timeit(51, 'old')
   CALL PDAF_timeit(22, 'old')
 
 
@@ -211,6 +222,7 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   ! *** with the weights w               ***
   ! ****************************************
 
+  CALL PDAF_timeit(51, 'new')
   CALL PDAF_timeit(23, 'new')
 
   ALLOCATE(A(dim_ens,dim_ens)) 
@@ -358,7 +370,7 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   DEALLOCATE(ens_blk)
 
   CALL PDAF_timeit(25, 'old')
-
+  CALL PDAF_timeit(51, 'old')
 
 ! ********************
 ! *** Finishing up ***

@@ -1,4 +1,4 @@
-! Copyright (c) 2019-2019 Lars Nerger
+! Copyright (c) 2019-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_pf_add_noise.F90 188 2019-07-03 15:28:20Z lnerger $
+!$Id: PDAF-D_pf_add_noise.F90 374 2020-02-26 12:49:56Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_pf_add_noise --- Add noise to particles after resampling
