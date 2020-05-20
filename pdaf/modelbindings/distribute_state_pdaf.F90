@@ -34,7 +34,8 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 !
 ! !USES:
   USE mod_statevector, &
-       ONLY: distrib2d_statevector, distrib3d_statevector
+       ONLY: distrib2d_statevector, distrib3d_statevector, &
+       statevar_brutemod
 
   IMPLICIT NONE
   
@@ -55,5 +56,8 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 
   CALL distrib2d_statevector(dim_p, state_p)
   CALL distrib3d_statevector(dim_p, state_p)
+
+  ! Temporary location for brute force modications to state variables
+  CALL statevar_brutemod()
 
 END SUBROUTINE distribute_state_pdaf

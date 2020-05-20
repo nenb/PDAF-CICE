@@ -28,7 +28,7 @@ CPP = /usr/bin/cpp
 # Define PDAF_NO_UPDATE to deactivate the analysis step of the filter
 # (if the compiler does not support get_command_argument()
 # from Fortran 2003 you should define F77 here.)
-CPP_DEFS = -DUSE_PDAF -DPDAF_NO_UPDATE
+CPP_DEFS = -DUSE_PDAF
 
 # Optimization specs for compiler
 # To use OpenMP parallelization in PDAF, specify it here (-fopenmp (gfortran) or -openmp (ifort))

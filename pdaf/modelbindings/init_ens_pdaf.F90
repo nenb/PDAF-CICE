@@ -87,8 +87,6 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      WRITE(year, '(i4)') yr
      istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
 
-     WRITE (*,'(/9x, a, 3x, a)') 'Initial state estimate file:', istate_ncfile
-
      s = 1
      stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
 

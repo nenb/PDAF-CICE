@@ -3,7 +3,7 @@
 # David Schroeder (compiler updated 20 NOV 2013) 
 #==============================================================================
 
-INCLDIR    := -I. -I/share/apps/Met/netcdf/fortran-4.4.4/include -I/share/apps/libraries/MPI/mpich/gcc/3.2.1/include
+INCLDIR    := -I. -I/share/apps/Met/netcdf/fortran-4.4.4/include -I/share/apps/libraries/MPI/mpich/gcc/3.2.1/include -I$(PDAF_MK)
 SLIBS      := -L/share/apps/Met/netcdf/fortran-4.4.4/lib -L/share/apps/libraries/MPI/mpich/gcc/3.2.1/lib -lnetcdff -lhdf5_hl -lhdf5 
 ULIBS      := -L/usr/lib64 -llapack -lblas -lm -L$(PDAF_LIB) -lpdaf-d 
 #ULIBS      :=

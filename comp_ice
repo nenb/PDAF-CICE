@@ -144,6 +144,7 @@ cat >! Filepath << EOF
 $SRCDIR/drivers/$DRVDIR
 $SRCDIR/source
 $SRCDIR/pdaf/modelbindings
+$SRCDIR/pdaf/modelbindings/obs_modules
 $SRCDIR/$COMMDIR
 $SRCDIR/$IODIR
 $SRCDIR/$SHRDIR

@@ -11,8 +11,8 @@
  screen=2,
  type_forget=0,
  forget=1.0,
- local_range=5.0,
+ local_range=10000.0,
  locweight=2,
- srange=5.0,
+ srange=10000.0,
  rms_obs=0.5 
 /
