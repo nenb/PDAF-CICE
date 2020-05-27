@@ -36,6 +36,8 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
   USE mod_statevector, &
        ONLY: distrib2d_statevector, distrib3d_statevector, &
        statevar_brutemod
+  USE mod_debug, &
+       ONLY: i_gp_debug, j_gp_debug, update_output, modif_update_output
 
   IMPLICIT NONE
   
@@ -54,10 +56,17 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! *** Initialize model fields from state  ***
 !********************************************
 
+  ! Debug routine for outputting original CICE values and
+  ! PDAF update values
+!  CALL update_output(i_gp_debug, j_gp_debug, dim_p, state_p)
+
   CALL distrib2d_statevector(dim_p, state_p)
   CALL distrib3d_statevector(dim_p, state_p)
 
   ! Temporary location for brute force modications to state variables
   CALL statevar_brutemod()
+
+  ! Debug routine for outputting modified PDAF update values
+!  CALL modif_update_output(i_gp_debug, j_gp_debug, dim_p, state_p)
 
 END SUBROUTINE distribute_state_pdaf
