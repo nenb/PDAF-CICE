@@ -2,7 +2,6 @@
  tasks=2/
 
 &pdaf_nml
-! Filter choice:
  istate_dir='/home/users/ys916780/PDAF_CICE/ic_files/',
  filtertype=5,
  subtype=0,
@@ -11,8 +10,8 @@
  screen=2,
  type_forget=0,
  forget=1.0,
- local_range=10000.0,
+ local_range=1.0,
  locweight=2,
- srange=10000.0,
- rms_obs=0.5 
+ srange=1.0,
+ rms_obs=0.5
 /

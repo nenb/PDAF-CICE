@@ -223,7 +223,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 ! *** local variables ***
   INTEGER :: dim_obs_l_ice_thickness ! Dimension of observation type A
   INTEGER :: offset_obs_l, offset_obs_f  ! local and full offsets
-
+  INTEGER :: s
 
 ! **********************************************
 ! *** Initialize local observation dimension ***
@@ -233,8 +233,9 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   offset_obs_l = 0
   offset_obs_f = 0
 
+  s = 30 + (104*36)
   ! debug option
-  IF (domain_p == 439) THEN
+  IF (domain_p == s) THEN
      CALL PDAFomi_set_debug_flag(domain_p)
   ELSE
      CALL PDAFomi_set_debug_flag(0)

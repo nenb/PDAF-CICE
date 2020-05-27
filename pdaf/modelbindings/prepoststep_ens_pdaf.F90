@@ -45,8 +45,18 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
        ONLY: mype_world, mype_filter
   USE mod_statevector, &
        ONLY: uvel_offset
-  USE ice_domain_size, &       ! Model global grid dimensions
-       ONLY: nx_global, ny_global, ncat
+  USE ice_blocks, &
+       ONLY: nx_block, ny_block
+  USE ice_domain, &
+       ONLY: nblocks
+  USE ice_domain_size, &
+       ONLY: nx_global, ny_global, ncat, max_ntrcr
+  USE ice_grid, &
+       ONLY: tmask
+  USE ice_itd, &       ! Update CICE aggregate quantities
+       ONLY: aggregate
+  USE ice_state        ! Variables required for aggregate subroutine
+
 
   IMPLICIT NONE
 
@@ -69,6 +79,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 
 ! *** local variables ***
   INTEGER :: i, j, member, domain     ! Counters
+  INTEGER :: iblk                     ! Counter
   LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
   REAL :: invdim_ens                  ! Inverse ensemble size
   REAL :: invdim_ensm1                ! Inverse of ensemble size minus 1
@@ -99,7 +110,37 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         END IF
      END IF
   END IF
-  
+
+! ***************************************
+! *** Adjustments after analysis step ***
+! ***************************************
+
+  ! Update aggregate quantities from CICE after PDAF distribute
+  IF( (step > 0) .OR. (firsttime)) THEN
+     !-----------------------------------------------------------------
+     ! aggregate tracers
+     !-----------------------------------------------------------------
+     DO iblk = 1, nblocks
+        CALL aggregate (nx_block, ny_block, &
+             aicen(:,:,:,iblk),  &
+             trcrn(:,:,:,:,iblk),&
+             vicen(:,:,:,iblk),  &
+             vsnon(:,:,:,iblk),  &
+             aice (:,:,  iblk),  &
+             trcr (:,:,:,iblk),  &
+             vice (:,:,  iblk),  &
+             vsno (:,:,  iblk),  &
+             aice0(:,:,  iblk),  &
+             tmask(:,:,  iblk),  &
+             max_ntrcr,          &
+             trcr_depend)
+     END DO
+  END IF
+
+! **************************************
+! *** Begin statistical calculations ***
+! **************************************
+
   ! Allocate fields
   ALLOCATE(variance_p(dim_p))
 

@@ -1,7 +1,7 @@
 &setup_nml
     days_per_year  = 365
   , use_leap_years = .false.
-  , year_init      = 2008 
+  , year_init      = 2008
   , istep0         = 0
   , dt             = 3600.0
   , npt            = 100 

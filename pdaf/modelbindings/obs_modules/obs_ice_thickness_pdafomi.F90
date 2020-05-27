@@ -108,11 +108,12 @@ MODULE obs_ice_thickness_pdafomi
   ! Variables which are inputs to the module (usually set in init_pdaf)
   LOGICAL :: assim_ice_thickness=.TRUE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_thickness=1      !< Observation error standard deviation (for constant errors)
-  REAL    :: noise_amp = 1  ! Standard deviation for Gaussian noise in twin experiment
+  REAL    :: rms_ice_thickness=0.1      !< Observation error standard deviation (for constant errors)
+  REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
+  LOGICAL            :: obs_file=.FALSE. ! Are observations read from file or manually created
   CHARACTER(len=110) :: file_ice_thickness='/home/users/ys916780/PDAF_CICE/ic_files/iced.2008-01-01-00000.nc'  ! netcdf file holding observations
 
 
@@ -265,119 +266,140 @@ CONTAINS
     ! The distance compution starts from the first row
     thisobs%ncoord = 2
 
-
-! **********************************
-! *** Read PE-local observations ***
-! **********************************
-
-    ! Read observation values and their coordinates,
-    ! also read observation error information if available
-
-
-!1. First read fractional ice area 'aicen'
+    ! Arrays for aicen and vicen
     ALLOCATE(obs_field1(nx_global, ny_global, ncat))
-
-    s = 1
-    stat(s) = NF90_OPEN(trim(file_ice_thickness), NF90_NOWRITE, ncid_in)
-
-    DO i = 1, s
-       IF (stat(i) .NE. NF90_NOERR) THEN
-          WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in opening file:', &
-               trim(file_ice_thickness)
-          CALL abort_parallel()
-       END IF
-    END DO
-
-    ! ******************************************
-    ! *** Read file containing initial state ***
-    ! ******************************************
-
-    s=1
-    stat(s) = NF90_INQ_VARID(ncid_in, 'aicen', id_3dvar)
-
-    ! Read state variable data from file
-    pos_nc = (/ 1, 1, 1 /)
-    cnt_nc = (/ nx_global , ny_global, ncat /)
-    s = s + 1
-    stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
-
-    DO i = 1, s
-       IF (stat(i) .NE. NF90_NOERR) THEN
-          WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in reading observations for aicen'
-          CALL abort_parallel()
-       END IF
-    END DO
-
-    ! *******************************************
-    ! *** Close file containing initial state ***
-    ! *******************************************
-
-    s = 1
-    stat(s) = NF90_CLOSE(ncid_in)
-
-    DO i = 1, s
-       IF (stat(i) .NE. NF90_NOERR) THEN
-          WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in closing file:', &
-               trim(file_ice_thickness)
-          CALL abort_parallel()
-       END IF
-    END DO
-
-
-!2. Now read volume per unit ice area 'vicen'
     ALLOCATE(obs_field2(nx_global, ny_global, ncat))
+    
+ !  ! We read in fields from a file
+    IF (obs_file) THEN
+       ! **********************************
+       ! *** Read PE-local observations ***
+       ! **********************************
+       
+       ! Read observation values and their coordinates,
+       ! also read observation error information if available
+       
+       
+       !1. First read fractional ice area 'aicen'
+       s = 1
+       stat(s) = NF90_OPEN(trim(file_ice_thickness), NF90_NOWRITE, ncid_in)
 
-    s = 1
-    stat(s) = NF90_OPEN(trim(file_ice_thickness), NF90_NOWRITE, ncid_in)
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in opening file:', &
+                  trim(file_ice_thickness)
+             CALL abort_parallel()
+          END IF
+       END DO
 
-    DO i = 1, s
-       IF (stat(i) .NE. NF90_NOERR) THEN
-          WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in opening file:', &
-               trim(file_ice_thickness)
-          CALL abort_parallel()
-       END IF
-    END DO
+       ! ******************************************
+       ! *** Read file containing initial state ***
+       ! ******************************************
 
-    ! ******************************************
-    ! *** Read file containing initial state ***
-    ! ******************************************
+       s=1
+       stat(s) = NF90_INQ_VARID(ncid_in, 'aicen', id_3dvar)
 
-    s=1
-    stat(s) = NF90_INQ_VARID(ncid_in, 'vicen', id_3dvar)
+       ! Read state variable data from file
+       pos_nc = (/ 1, 1, 1 /)
+       cnt_nc = (/ nx_global , ny_global, ncat /)
+       s = s + 1
+       stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
 
-    ! Read state variable data from file
-    pos_nc = (/ 1, 1, 1 /)
-    cnt_nc = (/ nx_global , ny_global, ncat /)
-    s = s + 1
-    stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field2, start=pos_nc, count=cnt_nc)
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in reading observations for aicen'
+             CALL abort_parallel()
+          END IF
+       END DO
 
-    DO i = 1, s
-       IF (stat(i) .NE. NF90_NOERR) THEN
-          WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in reading observations for vicen'
-          CALL abort_parallel()
-       END IF
-    END DO
+       ! *******************************************
+       ! *** Close file containing initial state ***
+       ! *******************************************
 
-    ! *******************************************
-    ! *** Close file containing initial state ***
-    ! *******************************************
+       s = 1
+       stat(s) = NF90_CLOSE(ncid_in)
 
-    s = 1
-    stat(s) = NF90_CLOSE(ncid_in)
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in closing file:', &
+                  trim(file_ice_thickness)
+             CALL abort_parallel()
+          END IF
+       END DO
 
-    DO i = 1, s
-       IF (stat(i) .NE. NF90_NOERR) THEN
-          WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in closing file:', &
-               trim(file_ice_thickness)
-          CALL abort_parallel()
-       END IF
-    END DO
+
+       !2. Now read volume per unit ice area 'vicen'
+       s = 1
+       stat(s) = NF90_OPEN(trim(file_ice_thickness), NF90_NOWRITE, ncid_in)
+
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in opening file:', &
+                  trim(file_ice_thickness)
+             CALL abort_parallel()
+          END IF
+       END DO
+
+       ! ******************************************
+       ! *** Read file containing initial state ***
+       ! ******************************************
+
+       s=1
+       stat(s) = NF90_INQ_VARID(ncid_in, 'vicen', id_3dvar)
+
+       ! Read state variable data from file
+       pos_nc = (/ 1, 1, 1 /)
+       cnt_nc = (/ nx_global , ny_global, ncat /)
+       s = s + 1
+       stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field2, start=pos_nc, count=cnt_nc)
+
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in reading observations for vicen'
+             CALL abort_parallel()
+          END IF
+       END DO
+
+       ! *******************************************
+       ! *** Close file containing initial state ***
+       ! *******************************************
+
+       s = 1
+       stat(s) = NF90_CLOSE(ncid_in)
+
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in closing file:', &
+                  trim(file_ice_thickness)
+             CALL abort_parallel()
+          END IF
+       END DO
+
+!   ! User manually specifies observation field.
+    ELSE
+       ! obs_field1 is aicen
+       DO k = 1, ncat
+          DO j = 1, ny_global
+             DO i= 1, nx_global
+                obs_field1(i,j,k) = 0.1
+             END DO
+          END DO
+       END DO
+       ! obs_field2 is vicen
+       DO k = 1, ncat
+          DO j = 1, ny_global
+             DO i= 1, nx_global
+                obs_field2(i,j,k) = 0.2
+             END DO
+          END DO
+       END DO
+    END IF
 
 ! ***********************************************************
 ! *** Count available observations for the process domain ***
@@ -388,14 +410,12 @@ CONTAINS
     ! and vicen fields and summing over categories.
     ALLOCATE(ice_thick_field(nx_global,ny_global))
     ice_thick_field=0.0
-    DO k = 1, ncat
-       DO j = 1, ny_global
-          DO i= 1, nx_global
-             IF (obs_field1(i,j,k) > puny) THEN
-                ice_thick_field(i,j)=ice_thick_field(i,j) + &
-                     (obs_field2(i,j,k)/obs_field1(i,j,k))
-             END IF
-          END DO
+    DO j = 1, 50
+       DO i= 1, 50
+          IF ( SUM(obs_field1(i,j,1:5)) > puny ) THEN
+             ice_thick_field(i,j)= &
+                  SUM(obs_field2(i,j,1:5)) / SUM(obs_field1(i,j,1:5))
+          END IF
        END DO
     END DO
 

@@ -1351,10 +1351,10 @@ END SUBROUTINE distrib2d_statevector
 
 SUBROUTINE distrib3d_statevector(dim_p, state_p)
 
-! !DESCRIPTION:
-! Distribute state vector 3d state variables.
+  ! !DESCRIPTION:
+  ! Distribute state vector 3d state variables.
 
-! !USES:
+  ! !USES:
   USE netcdf
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
@@ -1363,61 +1363,142 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
        nt_FY, nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
        nt_sice, nt_qice, nt_qsno, aice, aice0, vice
   USE ice_constants, &
-         ONLY: c1, c0
+       ONLY: c0, puny
 
 
   IMPLICIT NONE
 
-! !ARGUMENTS
+  ! !ARGUMENTS
   INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
   REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
 
-! *** local variables ***
+  ! *** local variables ***
   INTEGER :: i, j, k        ! Counters
   REAL :: catsum            ! Sum of categories
-
+  LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
 
   ! Calculate offsets in case not already calculated
   CALL calc_3d_offset()
 
+  ! ************************************
   ! Distribute state vector 3d variables
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset) > c0) THEN
+  ! ************************************
+
+  ! If routine is called for first time then don't need to worry about PDAF
+  ! creating/destroying ice.
+  IF(firsttime) THEN
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
               aicen(i+1,j+1,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                aicen_offset)
-           ELSE
-              aicen(i+1,j+1,k,1) = c0
-           END IF
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   aicen_offset)
+           END DO
         END DO
      END DO
-  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + vicen_offset) > c0) THEN
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
               vicen(i+1,j+1,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                    vicen_offset)
-           ELSE
-              vicen(i+1,j+1,k,1) = c0
-           END IF
+           END DO
         END DO
      END DO
-  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           vsnon(i+1,j+1,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                vsnon_offset)
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              vsnon(i+1,j+1,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   vsnon_offset)
+           END DO
         END DO
      END DO
-  END DO
+
+     ! Update logical switch
+     firsttime = .FALSE.
+
+  ! Prevent PDAF from creating/destroying ice.
+  ELSE
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              ! Don't let PDAF create ice
+              IF (aicen(i+1,j+1,k,1) < puny) THEN
+                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      aicen_offset) = aicen(i+1,j+1,k,1)
+                 ! Don't let PDAF destroy ice
+              ELSE IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global+aicen_offset) < &
+                   puny) THEN
+                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      aicen_offset) = aicen(i+1,j+1,k,1)
+                 ! Otherwise update CICE with PDAF
+              ELSE
+                 aicen(i+1,j+1,k,1) = &
+                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      aicen_offset)
+              END IF
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              ! If aicen category is 0, set vicen category to 0
+              IF (aicen(i+1,j+1,k,1) < puny) THEN
+                 vicen(i+1,j+1,k,1) = c0
+                 ! Don't let PDAF create ice
+              ELSE IF (vicen(i+1,j+1,k,1) < puny) THEN
+                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      vicen_offset) = vicen(i+1,j+1,k,1)
+                 ! Don't let PDAF destroy ice
+              ELSE IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global+vicen_offset) < &
+                   puny) THEN
+                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      vicen_offset) = vicen(i+1,j+1,k,1)
+                 ! Otherwise update CICE with PDAF
+              ELSE
+                 vicen(i+1,j+1,k,1) = &
+                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      vicen_offset)
+              END IF
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              ! If aicen category is 0, set vsnon category to 0
+              IF (aicen(i+1,j+1,k,1) < puny) THEN
+                 vsnon(i+1,j+1,k,1) = c0
+                 ! Don't let PDAF create ice
+              ELSE IF (vsnon(i+1,j+1,k,1) < puny) THEN
+                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      vsnon_offset) = vsnon(i+1,j+1,k,1)
+                 ! Don't let PDAF destroy ice
+              ELSE IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global+vsnon_offset) < &
+                   puny) THEN
+                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      vsnon_offset) = vsnon(i+1,j+1,k,1)
+                 ! Otherwise update CICE with PDAF
+              ELSE
+                 vsnon(i+1,j+1,k,1) = &
+                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      vsnon_offset)
+              END IF
+           END DO
+        END DO
+     END DO
+  END IF
+
+! *******************************************************
+! Update remaining state variables in same way regardless
+! of whether routine is called for first time
+! *******************************************************
 
   DO k =1,ncat
      DO j = 1,ny_global
@@ -1661,9 +1742,9 @@ SUBROUTINE statevar_brutemod()
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
   USE ice_state, &
-       ONLY: aicen, vicen, vice, aice, aice0
+       ONLY: aicen
   USE ice_constants, &
-         ONLY: c1, c0
+         ONLY: c1
 
   IMPLICIT NONE
 
