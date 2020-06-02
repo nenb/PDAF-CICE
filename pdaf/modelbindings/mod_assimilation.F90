@@ -104,7 +104,7 @@ MODULE mod_assimilation
                           !   LNETF:
                           !     (0) standard LNETF 
   INTEGER :: incremental  ! Perform incremental updating in LSEIK
-  INTEGER :: dim_lag      ! Number of time instances for smoother
+  INTEGER :: dim_lag = 0  ! Number of time instances for smoother
 
 ! ! Filter settings - available as command line options
 !    ! General
