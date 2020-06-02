@@ -113,7 +113,7 @@ MODULE obs_ice_thickness_pdafomi
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
-  LOGICAL            :: obs_file=.FALSE. ! Are observations read from file or manually created
+  LOGICAL            :: obs_file=.TRUE. ! Are observations read from file or manually created
   CHARACTER(len=110) :: file_ice_thickness='/home/users/ys916780/PDAF_CICE/ic_files/iced.2008-01-01-00000.nc'  ! netcdf file holding observations
 
 
@@ -395,7 +395,11 @@ CONTAINS
        DO k = 1, ncat
           DO j = 1, ny_global
              DO i= 1, nx_global
-                obs_field2(i,j,k) = 0.2
+                IF (k == 1) THEN
+                   obs_field2(i,j,k) = 0.1!0.3
+                ELSE
+                   obs_field2(i,j,k) = 0.1!REAL(k) - 1.0
+                END IF
              END DO
           END DO
        END DO
@@ -410,11 +414,15 @@ CONTAINS
     ! and vicen fields and summing over categories.
     ALLOCATE(ice_thick_field(nx_global,ny_global))
     ice_thick_field=0.0
-    DO j = 1, 50
-       DO i= 1, 50
-          IF ( SUM(obs_field1(i,j,1:5)) > puny ) THEN
-             ice_thick_field(i,j)= &
-                  SUM(obs_field2(i,j,1:5)) / SUM(obs_field1(i,j,1:5))
+    DO j = 1, ny_global
+       DO i= 1, nx_global
+          DO k = 1, ncat
+             ice_thick_field(i,j) = ice_thick_field(i,j) + &
+                  obs_field2(i,j,k) * obs_field1(i,j,k)
+          END DO
+          IF( SUM(obs_field1(i,j,:)) > puny ) THEN
+             ice_thick_field(i,j) = ice_thick_field(i,j) / &
+                  SUM(obs_field1(i,j,:))
           END IF
        END DO
     END DO

@@ -26,7 +26,8 @@ CONTAINS
 
 ! *** Local variables ***
     INTEGER :: i, k                    ! Counter
-    REAL, ALLOCATABLE :: ostate1_p(:)  ! local observed part of state vector
+    REAL, ALLOCATABLE :: ostate1_p(:)  ! temporary quantity aicen*vicen
+    REAL, ALLOCATABLE :: ostate2_p(:)  ! temporary quantity aice
 
 
 ! *********************************************
@@ -36,16 +37,19 @@ CONTAINS
 
     obs_exist:IF (nobs_p_one>0) THEN
        ALLOCATE(ostate1_p(nobs_p_one))
-
+       ALLOCATE(ostate2_p(nobs_p_one))
        ! Initialize observed part of state vector by summing categories
        ! and forming quotient -> hi = vicen / aicen
        DO i = 1, nobs_p_one
-          IF ( SUM(state_p(id_obs_p_one(1:ncat,i))) > puny ) THEN
-             ostate1_p(i) = SUM(state_p(id_obs_p_one(ncat+1:2*ncat,i)))/ &
-                  SUM(state_p(id_obs_p_one(1:ncat,i)))
-          END IF
-          IF (ostate1_p(i) > puny) THEN
-             obs_f_all(offset_obs+i) = ostate1_p(i)
+          ostate1_p(i) = c0
+          ostate2_p(i) = c0
+          DO k = 1, ncat
+             ostate1_p(i) = ostate1_p(i) + &
+                  state_p(id_obs_p_one(k,i)) * state_p(id_obs_p_one(k+ncat,i))
+             ostate2_p(i) = ostate2_p(i) + state_p(id_obs_p_one(k,i))
+          END DO
+          IF (ostate1_p(i) > puny .AND. ostate2_p(i) > puny) THEN
+             obs_f_all(offset_obs+i) = ostate1_p(i) / ostate2_p(i)
           ELSE
              obs_f_all(offset_obs+i) = c0
           END IF
@@ -54,7 +58,7 @@ CONTAINS
        ! Increment offset in observaton vector
        offset_obs = offset_obs + nobs_f_one
 
-       DEALLOCATE(ostate1_p)
+       DEALLOCATE(ostate1_p,ostate2_p)
     END IF obs_exist
 
   END SUBROUTINE PDAFomi_obs_op_f_ice_thickness
