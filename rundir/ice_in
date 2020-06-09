@@ -1,7 +1,7 @@
 &setup_nml
     days_per_year  = 365
   , use_leap_years = .false.
-  , year_init      = 2008
+  , year_init      = 2006
   , istep0         = 0
   , dt             = 3600.0
   , npt            = 100 
@@ -152,7 +152,7 @@
 &forcing_nml
     formdrag        = .true.
   , atmbndy         = 'default'
-  , fyear_init      = 2008
+  , fyear_init      = 2006
   , ycycle          = 4
   , atm_data_format = 'nc'
   , atm_data_type   = 'cpom'

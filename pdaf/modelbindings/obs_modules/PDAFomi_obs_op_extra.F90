@@ -2,10 +2,11 @@ MODULE PDAFomi_obs_op_extra
 !-------------------------------------------------------------------------------
 ! Extra observation operators required for CICE
 
+  USE PDAFomi_obs_f, ONLY: obs_f
+
 CONTAINS
 
-  SUBROUTINE PDAFomi_obs_op_f_ice_thickness(dim_p, nobs_f_all, nobs_p_one, nobs_f_one, &
-       id_obs_p_one, state_p, obs_f_all, offset_obs)
+  SUBROUTINE PDAFomi_obs_op_f_ice_thickness(thisobs, nrows, state_p, obs_f_all, offset_obs)
 
     USE ice_domain_size, &
          ONLY: ncat
@@ -15,17 +16,14 @@ CONTAINS
     IMPLICIT NONE
 
 ! *** Arguments ***
-    INTEGER, INTENT(in) :: dim_p               !< PE-local state dimension
-    INTEGER, INTENT(in) :: nobs_f_all          !< Length of obs. vector for all observations
-    INTEGER, INTENT(in) :: nobs_p_one          !< PE-local number observations of current observation type
-    INTEGER, INTENT(in) :: nobs_f_one          !< Full number observations of current observation type
-    INTEGER, INTENT(in) :: id_obs_p_one(:, :)  !< Index of current observations in PE-local state vector (nrows, nobs_p_one)
-    REAL, INTENT(in)    :: state_p(:)          !< PE-local model state (dim_p)
-    REAL, INTENT(inout) :: obs_f_all(:)        !< Full observed state for all observation types (nobs_f_all)
-    INTEGER, INTENT(inout) :: offset_obs       !< Offset of current observation in overall observation vector
+    TYPE(obs_f), INTENT(inout) :: thisobs  !< Data type with full observation
+    INTEGER, INTENT(in) :: nrows           !< Number of values to be averaged
+    REAL, INTENT(in)    :: state_p(:)      !< PE-local model state (dim_p)
+    REAL, INTENT(inout) :: obs_f_all(:)    !< Full observed state for all observation types (nobs_f_all)
+    INTEGER, INTENT(inout) :: offset_obs   !< Offset of current observation in overall observation vector
 
 ! *** Local variables ***
-    INTEGER :: i, k                    ! Counter
+    INTEGER :: i, row                  ! Counter
     REAL, ALLOCATABLE :: ostate1_p(:)  ! temporary quantity aicen*vicen
     REAL, ALLOCATABLE :: ostate2_p(:)  ! temporary quantity aice
 
@@ -35,18 +33,18 @@ CONTAINS
 ! *** operator H on vector or matrix column ***
 ! *********************************************
 
-    obs_exist:IF (nobs_p_one>0) THEN
-       ALLOCATE(ostate1_p(nobs_p_one))
-       ALLOCATE(ostate2_p(nobs_p_one))
+    obs_exist:IF (thisobs%dim_obs_p>0) THEN
+       ALLOCATE(ostate1_p(thisobs%dim_obs_p))
+       ALLOCATE(ostate2_p(thisobs%dim_obs_p))
        ! Initialize observed part of state vector by summing categories
        ! and forming quotient -> hi = vicen / aicen
-       DO i = 1, nobs_p_one
+       DO i = 1, thisobs%dim_obs_p
           ostate1_p(i) = c0
           ostate2_p(i) = c0
-          DO k = 1, ncat
+          DO row = 1, nrows
              ostate1_p(i) = ostate1_p(i) + &
-                  state_p(id_obs_p_one(k,i)) * state_p(id_obs_p_one(k+ncat,i))
-             ostate2_p(i) = ostate2_p(i) + state_p(id_obs_p_one(k,i))
+                  state_p(thisobs%id_obs_p(row,i)) * state_p(thisobs%id_obs_p(row+nrows,i))
+             ostate2_p(i) = ostate2_p(i) + state_p(thisobs%id_obs_p(row,i))
           END DO
           IF (ostate1_p(i) > puny .AND. ostate2_p(i) > puny) THEN
              obs_f_all(offset_obs+i) = ostate1_p(i) / ostate2_p(i)
@@ -55,8 +53,11 @@ CONTAINS
           END IF
        END DO
 
+       ! *** Store offset (mandatory!)
+       thisobs%off_obs_f = offset_obs
+
        ! Increment offset in observaton vector
-       offset_obs = offset_obs + nobs_f_one
+       offset_obs = offset_obs + thisobs%dim_obs_f
 
        DEALLOCATE(ostate1_p,ostate2_p)
     END IF obs_exist

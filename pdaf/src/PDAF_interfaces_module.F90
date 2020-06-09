@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF_interfaces_module.F90 421 2020-03-16 14:45:58Z lnerger $
+!$Id: PDAF_interfaces_module.F90 440 2020-05-22 05:49:45Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_interfaces_module --- Interface definitions for PDAF
@@ -62,6 +62,17 @@ MODULE PDAF_interfaces_module
        INTEGER, INTENT(out):: flag           ! Status flag, 0: no error, error codes:
        EXTERNAL :: U_init_ens  ! User-supplied routine for ensemble initialization
      END SUBROUTINE PDAF_init
+  END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_print_info(printtype)
+  INTEGER, INTENT(in) :: printtype    ! Type of screen output
+     END SUBROUTINE PDAF_print_info
+  END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_deallocate()
+     END SUBROUTINE PDAF_deallocate
   END INTERFACE
 
   INTERFACE
@@ -860,6 +871,49 @@ MODULE PDAF_interfaces_module
        INTEGER, INTENT(out) :: dim_obs_f    ! Full observation dimension
      END SUBROUTINE PDAF_gather_dim_obs_f
   END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_put_state_pf(U_collect_state, U_init_dim_obs, U_obs_op, &
+          U_init_obs, U_prepoststep, U_likelihood, flag)
+       INTEGER, INTENT(out) :: flag   ! Status flag
+       EXTERNAL :: U_collect_state, & ! Routine to collect a state vector
+            U_init_dim_obs, &      ! Initialize dimension of observation vector
+            U_obs_op, &            ! Observation operator
+            U_init_obs, &          ! Initialize observation vector
+            U_prepoststep, &       ! User supplied pre/poststep routine
+            U_likelihood           ! Compute observation likelihood for an ensemble member
+     END SUBROUTINE PDAF_put_state_pf
+  END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_put_state_pf_si(flag)
+       INTEGER, INTENT(inout) :: flag    ! Status flag
+     END SUBROUTINE PDAF_put_state_pf_si
+  END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_assimilate_pf(U_collect_state, U_distribute_state, &
+          U_init_dim_obs, U_obs_op, U_init_obs, U_prepoststep, &
+          U_likelihood, U_next_observation, flag)
+       INTEGER, INTENT(out) :: flag    ! Status flag
+       EXTERNAL :: U_collect_state, &  ! Routine to collect a state vector
+            U_distribute_state, &   ! Routine to distribute a state vector
+            U_init_dim_obs, &       ! Initialize dimension of observation vector
+            U_obs_op, &             ! Observation operator
+            U_init_obs, &           ! Initialize observation vector
+            U_prepoststep, &        ! User supplied pre/poststep routine
+            U_likelihood, &         ! Compute observation likelihood for an ensemble member
+            U_next_observation      ! Routine to provide time step, time and dimension
+                                    !   of next observation
+     END SUBROUTINE PDAF_assimilate_pf
+  END INTERFACE
+
+  INTERFACE
+     SUBROUTINE PDAF_assimilate_pf_si(flag)
+       INTEGER, INTENT(inout) :: flag    ! Status flag
+     END SUBROUTINE PDAF_assimilate_pf_si
+  END INTERFACE
+
 
   INTERFACE
      SUBROUTINE PDAF_gather_obs_f(obs_p, obs_f, status)

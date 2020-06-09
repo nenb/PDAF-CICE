@@ -103,6 +103,7 @@ setenv PDAF_ARCH linux_gfortran_mpich
 #Set location of PDAF library and makefile
 setenv PDAF_LIB $SRCDIR/pdaf/lib
 setenv PDAF_MK $SRCDIR/pdaf/src
+setenv PDAF_INCL $SRCDIR/pdaf/include
 
 cd $SRCDIR/source
 

@@ -1,4 +1,4 @@
-!$Id: callback_obs_pdafomi.F90 427 2020-04-20 14:54:01Z lnerger $
+!$Id: callback_obs_pdafomi.F90 466 2020-05-28 12:38:20Z lnerger $
 !> callback_obs_pdafomi
 !!
 !! This file provides interface routines between the call-back routines
@@ -6,11 +6,18 @@
 !! collects all calls to observation-specifc routines in this single file
 !! to make it easier to find the routines that need to be adapted.
 !!
+!! The routines here are mainly pure pass-through routines. Thus they
+!! simply call one of the routines from PDAF-OMI. Partly some addtional
+!! variable is required, e.g. to specify the offset of an observation
+!! in the observation vector containing all observation types. These
+!! cases are described in the routines.
+!!
 !! **Adding an observation type:**
 !! When adding an observation type, one has to add one module
-!! obs_TYPE_pdafomi (based on the template obs_TYEPE_pdafomi_TEMPLATE.F90).
+!! obs_TYPE_pdafomi (based on the template obs_TYPE_pdafomi_TEMPLATE.F90).
 !! In addition one has to add a call to the different routines include
-!! in this module.
+!! in this file. It is recommended to keep the order of the calls
+!! consistent over all files. 
 !! 
 !! __Revision history:__
 !! * 2019-12 - Lars Nerger - Initial code
@@ -26,8 +33,7 @@
 SUBROUTINE init_dim_obs_f_pdafomi(step, dim_obs_f)
 
   ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, &
-       ONLY: assim_ice_thickness, init_dim_obs_f_ice_thickness
+  USE obs_ice_thickness_pdafomi, ONLY: assim_ice_thickness, init_dim_obs_f_ice_thickness
 
   IMPLICIT NONE
 
@@ -46,7 +52,7 @@ SUBROUTINE init_dim_obs_f_pdafomi(step, dim_obs_f)
   ! Initialize number of observations
   dim_obs_f_ice_thickness = 0
 
-  ! Call observation specific routines
+  ! Call observation-specific routines
   ! The routines are independent, so it is not relevant
   ! in which order they are called
   IF (assim_ice_thickness) CALL init_dim_obs_f_ice_thickness(step, dim_obs_f_ice_thickness)
@@ -80,10 +86,9 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
   INTEGER :: offset_obs_f     ! Count offset of an observation type in full obs. vector
 
 
-! *********************************************
-! *** Perform application of measurement    ***
-! *** operator H on vector or matrix column ***
-! *********************************************
+! ******************************************************
+! *** Apply observation operator H on a state vector ***
+! ******************************************************
 
   ! Initialize offset
   offset_obs_f = 0
@@ -95,43 +100,19 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
 END SUBROUTINE obs_op_f_pdafomi
 
 
-!-------------------------------------------------------------------------------
-!> Call-back routine for deallocate_obs
-!!
-!! This routine calls the observation-specific
-!! routines deallocate_obs_TYPE.
-!!
-SUBROUTINE deallocate_obs_pdafomi(step)
-
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: deallocate_obs_ice_thickness
-
-  IMPLICIT NONE
-
-! *** Arguments ***
-  INTEGER, INTENT(in) :: step   !< Current time step
-
-
-! *************************************
-! *** Deallocate observation arrays ***
-! *************************************
-
-  CALL deallocate_obs_ice_thickness()
-
-END SUBROUTINE deallocate_obs_pdafomi
-
-
 
 !-------------------------------------------------------------------------------
 !> Call-back routine for init_obs_f
 !!
-!! This routine calls the observation-specific
-!! routines init_obs_f_TYPE.
+!! This routine calls the routine PDAFomi_init_obs_f
+!! for each observation type
 !!
 SUBROUTINE init_obs_f_pdafomi(step, dim_obs_f, observation_f)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: init_obs_f_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_obs_f
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
   IMPLICIT NONE
 
@@ -148,10 +129,11 @@ SUBROUTINE init_obs_f_pdafomi(step, dim_obs_f, observation_f)
 ! *** Initialize full observation vector ***
 ! ******************************************
 
+  ! Initialize offset (it will be incremented in PDAFomi_init_obs_f)
   offset_obs_f = 0
 
-  ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
-  CALL init_obs_f_ice_thickness(dim_obs_f, observation_f, offset_obs_f)
+  ! The order of the calls has to be consistent with those in obs_op_f_pdafomi
+  CALL PDAFomi_init_obs_f(obs_ice_thickness, dim_obs_f, observation_f, offset_obs_f)
 
 END SUBROUTINE init_obs_f_pdafomi
 
@@ -160,13 +142,15 @@ END SUBROUTINE init_obs_f_pdafomi
 !-------------------------------------------------------------------------------
 !> Call-back routine for init_obsvar
 !!
-!! This routine calls the observation-specific
-!! routines init_obsvar_TYPE.
+!! This routine calls the routine PDAFomi_init_obsvar_f
+!! for each observation type
 !!
 SUBROUTINE init_obsvar_pdafomi(step, dim_obs_p, obs_p, meanvar)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: init_obsvar_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_obsvar_f
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
   IMPLICIT NONE
 
@@ -184,11 +168,10 @@ SUBROUTINE init_obsvar_pdafomi(step, dim_obs_p, obs_p, meanvar)
 ! *** Compute mean variance ***
 ! *****************************
 
-  ! Initialize observation counter
+  ! Initialize observation counter (it will be incremented in PDAFomi_init_obsvar_f)
   cnt_obs_f = 0
 
-  ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
-  CALL init_obsvar_ice_thickness(meanvar, cnt_obs_f)
+  CALL PDAFomi_init_obsvar_f(obs_ice_thickness, meanvar, cnt_obs_f)
 
 END SUBROUTINE init_obsvar_pdafomi
 
@@ -197,20 +180,19 @@ END SUBROUTINE init_obsvar_pdafomi
 !-------------------------------------------------------------------------------
 !> Call-back routine for init_dim_obs_l
 !!
-!! This routine calls the observation-specific
-!! routines init_dim_obs_l_TYPE.
+!! This routine calls the routine PDAFomi_init_dim_obs_l
+!! for each observation type
 !!
 SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, &
-       ONLY: init_dim_obs_l_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_dim_obs_l
+  ! Include observation types
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
 
   ! Include localization radius and local coordinates
   USE mod_assimilation, &   
        ONLY: local_range, coords_l
-  USE PDAFomi_obs_l, &
-       ONLY: PDAFomi_set_debug_flag
 
   IMPLICIT NONE
 
@@ -221,79 +203,43 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   INTEGER, INTENT(out) :: dim_obs_l  !< Local dimension of observation vector
 
 ! *** local variables ***
-  INTEGER :: dim_obs_l_ice_thickness ! Dimension of observation type A
+  INTEGER :: dim_obs_l_ice_thickness ! Dimension of observation type
   INTEGER :: offset_obs_l, offset_obs_f  ! local and full offsets
-  INTEGER :: s
+
 
 ! **********************************************
 ! *** Initialize local observation dimension ***
 ! **********************************************
 
-  ! Initialize offsets with zero
+  ! Initialize offsets (they are incremented in PDAFomi_init_dim_obs_l)
   offset_obs_l = 0
   offset_obs_f = 0
 
-  s = 30 + (104*36)
-  ! debug option
-  IF (domain_p == s) THEN
-     CALL PDAFomi_set_debug_flag(domain_p)
-  ELSE
-     CALL PDAFomi_set_debug_flag(0)
-  ENDIF
-
   ! Call init_dim_obs_l specific for each observation
   ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
-  CALL init_dim_obs_l_ice_thickness(coords_l, local_range, dim_obs_l_ice_thickness, &
+  CALL PDAFomi_init_dim_obs_l(obs_ice_thickness_l, obs_ice_thickness, coords_l, local_range, dim_obs_l_ice_thickness, &
        offset_obs_l, offset_obs_f)
 
   ! Compute overall local observation dimension
-  dim_obs_l = dim_obs_l_ice_thickness
+  dim_obs_l = dim_obs_l_ice_thickness ! + dim_obs_l_TYPE2 ...
 
 END SUBROUTINE init_dim_obs_l_pdafomi
 
 
 
 !-------------------------------------------------------------------------------
-!> Call-back routine for init_obs_l
-!!
-!! This routine calls the observation-specific
-!! routines init_obs_l_TYPE.
-!!
-SUBROUTINE init_obs_l_pdafomi(domain_p, step, dim_obs_l, observation_l)
-
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: init_obs_l_ice_thickness
-
-  IMPLICIT NONE
-
-! *** Arguments ***
-  INTEGER, INTENT(in) :: domain_p   !< Index of current local analysis domain index
-  INTEGER, INTENT(in) :: step       !< Current time step
-  INTEGER, INTENT(in) :: dim_obs_l  !< Local dimension of observation vector
-  REAL, INTENT(out)   :: observation_l(dim_obs_l) !< Local observation vector
-
-
-! *******************************************
-! *** Initialize local observation vector ***
-! *******************************************
-
-  CALL init_obs_l_ice_thickness(dim_obs_l, observation_l)
-
-END SUBROUTINE init_obs_l_pdafomi
-
-
-
-!-------------------------------------------------------------------------------
 !> Call-back routine for g2l_obs
 !!
-!! This routine calls the observation-specific
-!! routines g2l_obs_TYPE.
+!! This routine calls the routine PDAFomi_g2l_obs
+!! for each observation type
 !!
 SUBROUTINE g2l_obs_pdafomi(domain_p, step, dim_obs_f, dim_obs_l, ostate_f, &
      ostate_l)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: g2l_obs_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_g2l_obs
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
 
   IMPLICIT NONE
 
@@ -311,83 +257,56 @@ SUBROUTINE g2l_obs_pdafomi(domain_p, step, dim_obs_f, dim_obs_l, ostate_f, &
 ! *** to the current local analysis domain.           ***
 ! *******************************************************
 
-  CALL g2l_obs_ice_thickness(dim_obs_l, dim_obs_f, ostate_f, ostate_l)
+  CALL PDAFomi_g2l_obs(obs_ice_thickness_l, obs_ice_thickness, ostate_f, ostate_l)
 
 END SUBROUTINE g2l_obs_pdafomi
 
 
 
 !-------------------------------------------------------------------------------
-!> Call-back routine for prodRinvA_l
+!> Call-back routine for init_obs_l
 !!
-!! This routine calls the observation-specific
-!! routines prodRinvA_l_TYPE.
+!! This routine calls the routine PDAFomi_init_obs_l
+!! for each observation type
 !!
-SUBROUTINE prodRinvA_l_pdafomi(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
+SUBROUTINE init_obs_l_pdafomi(domain_p, step, dim_obs_l, observation_l)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: prodRinvA_l_ice_thickness
-
-  ! Include variables for localization
-  USE mod_assimilation, &
-       ONLY: local_range, locweight, srange
-  USE mod_parallel_pdaf, &
-       ONLY: mype_filter
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_obs_l
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
 
   IMPLICIT NONE
 
 ! *** Arguments ***
-  INTEGER, INTENT(in) :: domain_p          !< Index of current local analysis domain
-  INTEGER, INTENT(in) :: step              !< Current time step
-  INTEGER, INTENT(in) :: dim_obs_l         !< Dimension of local observation vector
-  INTEGER, INTENT(in) :: rank              !< Rank of initial covariance matrix
-  REAL, INTENT(in)    :: obs_l(dim_obs_l)  !< Local vector of observations
-  REAL, INTENT(inout) :: A_l(dim_obs_l, rank) !< Input matrix
-  REAL, INTENT(out)   :: C_l(dim_obs_l, rank) !< Output matrix
-
-! *** local variables ***
-  INTEGER :: verbose                 ! Verbosity flag
-  INTEGER, SAVE :: domain_save = -1  ! Save previous domain index
+  INTEGER, INTENT(in) :: domain_p   !< Index of current local analysis domain index
+  INTEGER, INTENT(in) :: step       !< Current time step
+  INTEGER, INTENT(in) :: dim_obs_l  !< Local dimension of observation vector
+  REAL, INTENT(out)   :: observation_l(dim_obs_l) !< Local observation vector
 
 
-! **********************
-! *** INITIALIZATION ***
-! **********************
+! *******************************************
+! *** Initialize local observation vector ***
+! *******************************************
 
-  IF ((domain_p <= domain_save .OR. domain_save < 0) .AND. mype_filter==0) THEN
-     verbose = 1
-  ELSE
-     verbose = 0
-  END IF
-  domain_save = domain_p
+  CALL PDAFomi_init_obs_l(obs_ice_thickness_l, obs_ice_thickness, observation_l)
 
-
-! *************************************
-! *** Compute                       ***
-! ***                  -1           ***
-! ***           C = W R   A         ***
-! ***                               ***
-! *** where W are the localization  ***
-! *** weights.                      ***
-! *************************************
-
-  CALL prodRinvA_l_ice_thickness(verbose, dim_obs_l, rank, locweight, local_range, &
-       srange, A_l, C_l)
-  
-END SUBROUTINE prodRinvA_l_pdafomi
+END SUBROUTINE init_obs_l_pdafomi
 
 
 
 !-------------------------------------------------------------------------------
 !> Call-back routine for init_obsvar_l
 !!
-!! This routine calls the observation-specific
-!! routines init_obsvar_l_TYPE.
+!! This routine calls the routine PDAFomi_init_obsvar_l
+!! for each observation type
 !!
 SUBROUTINE init_obsvar_l_pdafomi(domain_p, step, dim_obs_l, obs_l, meanvar_l)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: init_obsvar_l_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_obsvar_l
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
 
   IMPLICIT NONE
 
@@ -406,25 +325,184 @@ SUBROUTINE init_obsvar_l_pdafomi(domain_p, step, dim_obs_l, obs_l, meanvar_l)
 ! *** Compute local mean variance ***
 ! ***********************************
 
-  ! Initialize observation counter
+  ! Initialize observation counter (it will be incremented in PDAFomi_init_obsvar_f)
   cnt_obs_l = 0
 
-  CALL init_obsvar_l_ice_thickness(meanvar_l, cnt_obs_l)
+  CALL PDAFomi_init_obsvar_l(obs_ice_thickness_l, obs_ice_thickness, meanvar_l, cnt_obs_l)
 
 END SUBROUTINE init_obsvar_l_pdafomi
 
 
 
 !-------------------------------------------------------------------------------
+!> Call-back routine for prodRinvA_l
+!!
+!! This routine calls the routine PDAFomi_prodRinvA_l
+!! for each observation type
+!!
+SUBROUTINE prodRinvA_l_pdafomi(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
+
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_prodRinvA_l
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+
+  ! Include variables for localization
+  USE mod_assimilation, ONLY: local_range, locweight, srange
+  ! Include filter process rank
+  USE mod_parallel_pdaf, ONLY: mype_filter
+#if defined (_OPENMP)
+  ! Include OpenMP function to determine verbosity for OpenMP
+  USE omp_lib, ONLY: omp_get_thread_num
+#endif
+
+  IMPLICIT NONE
+
+! *** Arguments ***
+  INTEGER, INTENT(in) :: domain_p          !< Index of current local analysis domain
+  INTEGER, INTENT(in) :: step              !< Current time step
+  INTEGER, INTENT(in) :: dim_obs_l         !< Dimension of local observation vector
+  INTEGER, INTENT(in) :: rank              !< Rank of initial covariance matrix
+  REAL, INTENT(in)    :: obs_l(dim_obs_l)  !< Local vector of observations
+  REAL, INTENT(inout) :: A_l(dim_obs_l, rank) !< Input matrix
+  REAL, INTENT(out)   :: C_l(dim_obs_l, rank) !< Output matrix
+
+! *** local variables ***
+  INTEGER :: verbose                 ! Verbosity flag
+  INTEGER, SAVE :: domain_save = -1  ! Save previous domain index
+  INTEGER, SAVE :: mythread          ! Thread variable for OpenMP
+
+!$OMP THREADPRIVATE(mythread, domain_save)
+
+
+! **********************
+! *** INITIALIZATION ***
+! **********************
+
+  ! For OpenMP parallelization, determine the thread index
+#if defined (_OPENMP)
+  mythread = omp_get_thread_num()
+#else
+  mythread = 0
+#endif
+
+  ! Set verbosity flag (Screen output for first analysis domain)
+  IF ((domain_p <= domain_save .OR. domain_save < 0) .AND. mype_filter==0) THEN
+     verbose = 1
+
+     ! In case of OpenMP, let only thread 0 write output to the screen
+     IF (mythread>0) verbose = 0
+  ELSE
+     verbose = 0
+  END IF
+  domain_save = domain_p
+
+
+! *************************************
+! *** Compute                       ***
+! ***                  -1           ***
+! ***           C = W R   A         ***
+! ***                               ***
+! *** where W are the localization  ***
+! *** weights.                      ***
+! *************************************
+
+  CALL PDAFomi_prodRinvA_l(obs_ice_thickness_l, obs_ice_thickness, dim_obs_l, rank, &
+       locweight, local_range, srange, A_l, C_l, verbose)
+  
+END SUBROUTINE prodRinvA_l_pdafomi
+
+
+!-------------------------------------------------------------------------------
+!> Call-back routine for likelihood_l
+!!
+!! This routine calls the routine PDAFomi_likelihood_l
+!! for each observation type
+!!
+SUBROUTINE likelihood_l_pdafomi(domain_p, step, dim_obs_l, obs_l, resid_l, lhood_l)
+
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_likelihood_l
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+
+  ! Include variables for localization
+  USE mod_assimilation, ONLY: local_range, locweight, srange
+  ! Include filter process rank
+  USE mod_parallel_pdaf, ONLY: mype_filter
+#if defined (_OPENMP)
+  ! Include OpenMP function to determine verbosity for OpenMP
+  USE omp_lib, ONLY: omp_get_thread_num
+#endif
+
+  IMPLICIT NONE
+
+! *** Arguments ***
+  INTEGER, INTENT(in) :: domain_p           ! Current local analysis domain
+  INTEGER, INTENT(in) :: step               !< Current time step
+  INTEGER, INTENT(in) :: dim_obs_l          !< PE-local dimension of obs. vector
+  REAL, INTENT(in)    :: obs_l(dim_obs_l)   !< PE-local vector of observations
+  REAL, INTENT(inout) :: resid_l(dim_obs_l) !< Input vector of residuum
+  REAL, INTENT(out)   :: lhood_l            !< Output vector - log likelihood
+
+! *** local variables ***
+  INTEGER :: verbose                 ! Verbosity flag
+  INTEGER, SAVE :: domain_save = -1  ! Save previous domain index
+  INTEGER, SAVE :: mythread          ! Thread variable for OpenMP
+
+!$OMP THREADPRIVATE(mythread, domain_save)
+
+
+! **********************
+! *** INITIALIZATION ***
+! **********************
+
+  ! For OpenMP parallelization, determine the thread index
+#if defined (_OPENMP)
+  mythread = omp_get_thread_num()
+#else
+  mythread = 0
+#endif
+
+  ! Set verbosity flag (Screen output for first analysis domain)
+  IF ((domain_p < domain_save .OR. domain_save < 0) .AND. mype_filter==0) THEN
+     verbose = 1
+
+     ! In case of OpenMP, let only thread 0 write output to the screen
+     IF (mythread>0) verbose = 0
+  ELSE
+     verbose = 0
+  END IF
+  domain_save = domain_p
+
+
+! ********************************
+! *** Compute local likelihood ***
+! ********************************
+
+  ! Initialize likelihood value before starting computation
+  lhood_l = 0.0
+
+  ! Increment likelihood
+  CALL PDAFomi_likelihood_l(obs_ice_thickness_l, obs_ice_thickness, resid_l, locweight, &
+       local_range, srange, lhood_l, verbose)
+
+END SUBROUTINE likelihood_l_pdafomi
+
+
+
+!-------------------------------------------------------------------------------
 !> Call-back routine for prodRinvA
 !!
-!! This routine calls the observation-specific
-!! routines prodRinvA_TYPE.
+!! This routine calls the routine PDAFomi_prodRinvA
+!! for each observation type
 !!
 SUBROUTINE prodRinvA_pdafomi(step, dim_obs_p, ncol, obs_p, A_p, C_p)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: prodRinvA_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_prodRinvA
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
   IMPLICIT NONE
 
@@ -433,7 +511,7 @@ SUBROUTINE prodRinvA_pdafomi(step, dim_obs_p, ncol, obs_p, A_p, C_p)
   INTEGER, INTENT(in) :: dim_obs_p         !< Dimension of PE-local observation vector
   INTEGER, INTENT(in) :: ncol              !< Number of columns in A_p and C_p
   REAL, INTENT(in)    :: obs_p(dim_obs_p)  !< PE-local vector of observations
-  REAL, INTENT(in) :: A_p(dim_obs_p, ncol) !< Input matrix
+  REAL, INTENT(in)    :: A_p(dim_obs_p, ncol) !< Input matrix
   REAL, INTENT(out)   :: C_p(dim_obs_p, ncol) !< Output matrix
 
 
@@ -443,87 +521,24 @@ SUBROUTINE prodRinvA_pdafomi(step, dim_obs_p, ncol, obs_p, A_p, C_p)
 ! ***           C = R   A           ***
 ! *************************************
 
-  CALL prodRinvA_ice_thickness(ncol, A_p, C_p)
+  CALL PDAFomi_prodRinvA(obs_ice_thickness, ncol, A_p, C_p)
   
 END SUBROUTINE prodRinvA_pdafomi
 
 
 
 !-------------------------------------------------------------------------------
-!> Call-back routine for add_obs_error
-!!
-!! This routine calls the observation-specific
-!! routines add_obs_err_TYPE.
-!!
-SUBROUTINE add_obs_error_pdafomi(step, dim_obs_p, C_p)
-
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: add_obs_error_ice_thickness
-
-  IMPLICIT NONE
-
-! *** Arguments ***
-  INTEGER, INTENT(in) :: step              !< Current time step
-  INTEGER, INTENT(in) :: dim_obs_p         !< Dimension of PE-local observation vector
-  REAL, INTENT(inout) :: C_p(dim_obs_p,dim_obs_p) ! Matrix to which R is added
-
-
-! *************************************
-! ***   Add observation error       ***
-! ***                               ***
-! *** Measurements are uncorrelated ***
-! *** here, thus R is diagonal      ***
-! *************************************
-
-  CALL add_obs_error_ice_thickness(dim_obs_p, C_p)
-  
-END SUBROUTINE add_obs_error_pdafomi
-
-
-
-!-------------------------------------------------------------------------------
-!> Call-back routine for init_obscovar
-!!
-!! This routine calls the observation-specific
-!! routines init_obscovar_TYPE.
-!!
-SUBROUTINE init_obscovar_pdafomi(step, dim_obs, dim_obs_p, covar, m_state_p, &
-     isdiag)
-
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: init_obscovar_ice_thickness
-
-  IMPLICIT NONE
-
-! *** Arguments ***
-  INTEGER, INTENT(in) :: step                 !< Current time step
-  INTEGER, INTENT(in) :: dim_obs              !< Dimension of observation vector
-  INTEGER, INTENT(in) :: dim_obs_p            !< PE-local dimension of obs. vector
-  REAL, INTENT(out) :: covar(dim_obs,dim_obs) !< Observation error covar. matrix
-  REAL, INTENT(in) :: m_state_p(dim_obs_p)    !< Observation vector
-  LOGICAL, INTENT(out) :: isdiag              !< Whether matrix R is diagonal
-
-
-! *************************************
-! ***   Initialize covariances      ***
-! *************************************
-
-  CALL init_obscovar_ice_thickness(dim_obs_p, covar, isdiag)
-  
-END SUBROUTINE init_obscovar_pdafomi
-
-
-
-!-------------------------------------------------------------------------------
 !> Call-back routine for likelihood
 !!
-!! This routine calls the observation-specific
-!! routines likelihood_TYPE.
+!! This routine calls the routine PDAFomi_likelihood
+!! for each observation type
 !!
 SUBROUTINE likelihood_pdafomi(step, dim_obs, obs, resid, lhood)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: likelihood_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_likelihood
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
   IMPLICIT NONE
 
@@ -543,85 +558,98 @@ SUBROUTINE likelihood_pdafomi(step, dim_obs, obs, resid, lhood)
   lhood = 0.0
 
   ! Increment likelihood
-  CALL likelihood_ice_thickness(dim_obs, obs, resid, lhood)
+  CALL PDAFomi_likelihood(obs_ice_thickness, dim_obs, obs, resid, lhood)
 
 END SUBROUTINE likelihood_pdafomi
 
 
+
 !-------------------------------------------------------------------------------
-!> Call-back routine for likelihood_l
+!> Call-back routine for add_obs_error
 !!
-!! This routine calls the observation-specific
-!! routines likelihood_l_TYPE.
+!! This routine calls the routine PDAFomi_add_obs_error
+!! for each observation type
 !!
-SUBROUTINE likelihood_l_pdafomi(domain_p, step, dim_obs_l, obs_l, resid_l, lhood_l)
+SUBROUTINE add_obs_error_pdafomi(step, dim_obs_p, C_p)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: likelihood_l_ice_thickness
-
-  ! Include variables for localization
-  USE mod_assimilation, &
-       ONLY: local_range, locweight, srange
-  USE mod_parallel_pdaf, &
-       ONLY: mype_filter
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_add_obs_error
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
   IMPLICIT NONE
 
 ! *** Arguments ***
-  INTEGER, INTENT(in) :: domain_p           ! Current local analysis domain
-  INTEGER, INTENT(in) :: step               !< Current time step
-  INTEGER, INTENT(in) :: dim_obs_l          !< PE-local dimension of obs. vector
-  REAL, INTENT(in)    :: obs_l(dim_obs_l)   !< PE-local vector of observations
-  REAL, INTENT(inout) :: resid_l(dim_obs_l) !< Input vector of residuum
-  REAL, INTENT(out)   :: lhood_l            !< Output vector - log likelihood
-
-! *** local variables ***
-  INTEGER :: verbose                 ! Verbosity flag
-  INTEGER, SAVE :: domain_save = -1  ! Save previous domain index
+  INTEGER, INTENT(in) :: step              !< Current time step
+  INTEGER, INTENT(in) :: dim_obs_p         !< Dimension of PE-local observation vector
+  REAL, INTENT(inout) :: C_p(dim_obs_p,dim_obs_p) ! Matrix to which R is added
 
 
-! **********************
-! *** INITIALIZATION ***
-! **********************
+! *************************************
+! ***   Add observation error       ***
+! ***                               ***
+! *** Measurements are uncorrelated ***
+! *** here, thus R is diagonal      ***
+! *************************************
 
-  IF ((domain_p < domain_save .OR. domain_save < 0) .AND. mype_filter==0) THEN
-     verbose = 1
-  ELSE
-     verbose = 0
-  END IF
-  domain_save = domain_p
+  CALL PDAFomi_add_obs_error(obs_ice_thickness, dim_obs_p, C_p)
+  
+END SUBROUTINE add_obs_error_pdafomi
 
 
-! ********************************
-! *** Compute local likelihood ***
-! ********************************
 
-  ! Initialize likelihood value before starting computation
-  lhood_l = 0.0
+!-------------------------------------------------------------------------------
+!> Call-back routine for init_obscovar
+!!
+!! This routine calls the routine PDAFomi_init_obscovar
+!! for each observation type
+!!
+SUBROUTINE init_obscovar_pdafomi(step, dim_obs, dim_obs_p, covar, m_state_p, &
+     isdiag)
 
-  ! Increment likelihood
-  CALL likelihood_l_ice_thickness(verbose, dim_obs_l, obs_l, resid_l, &
-       locweight, local_range, srange, lhood_l)
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_obscovar
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
-END SUBROUTINE likelihood_l_pdafomi
+  IMPLICIT NONE
+
+! *** Arguments ***
+  INTEGER, INTENT(in) :: step                 !< Current time step
+  INTEGER, INTENT(in) :: dim_obs              !< Dimension of observation vector
+  INTEGER, INTENT(in) :: dim_obs_p            !< PE-local dimension of obs. vector
+  REAL, INTENT(out) :: covar(dim_obs,dim_obs) !< Observation error covar. matrix
+  REAL, INTENT(in) :: m_state_p(dim_obs_p)    !< Observation vector
+  LOGICAL, INTENT(out) :: isdiag              !< Whether matrix R is diagonal
+
+
+! *************************************
+! ***   Initialize covariances      ***
+! *************************************
+
+  CALL PDAFomi_init_obscovar(obs_ice_thickness, dim_obs_p, covar, isdiag)
+  
+END SUBROUTINE init_obscovar_pdafomi
+
 
 
 !-------------------------------------------------------------------------------
 !> Call-back routine for localize_covar
 !!
-!! This routine calls the observation-specific
-!! routines localize_covar_TYPE.
+!! This routine calls the routine PDAFomi_localize_covar
+!! for each observation type
 !!
 SUBROUTINE localize_covar_pdafomi(dim, dim_obs, HP, HPH)
 
-  ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: localize_covar_ice_thickness
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_localize_covar
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
 
   ! Include variables for localization
-  USE mod_assimilation, &
-       ONLY: local_range, locweight, srange
-  USE mod_parallel_pdaf, &
-       ONLY: mype_filter
+  USE mod_assimilation, ONLY: local_range, locweight, srange
+  ! Include filter process rank
+  USE mod_parallel_pdaf, ONLY: mype_filter
 
   IMPLICIT NONE
 
@@ -642,6 +670,7 @@ SUBROUTINE localize_covar_pdafomi(dim, dim_obs, HP, HPH)
 ! *** INITIALIZATION ***
 ! **********************
 
+  ! Set verbosity flag (only first process writes)
   IF (mype_filter==0) THEN
      verbose = 1
   ELSE
@@ -649,12 +678,13 @@ SUBROUTINE localize_covar_pdafomi(dim, dim_obs, HP, HPH)
   END IF
 
   ! Initialize coordinate array (an array of real)
+  ! This array could be initialized e.g. in init_dim_obs_f
 
-  ALLOCATE(coords(1, dim))
-
-  DO i=1, dim
-     coords(1, i) = REAL(i)
-  END DO
+!   ALLOCATE(coords(1, dim))
+! 
+!   DO i=1, dim
+!      coords(1, i) = REAL(i)
+!   END DO
 
 
 ! *************************************
@@ -665,7 +695,68 @@ SUBROUTINE localize_covar_pdafomi(dim, dim_obs, HP, HPH)
   offset_obs = 0
 
   ! Apply localization
-  CALL localize_covar_ice_thickness(verbose, dim, dim_obs, &
-       locweight, local_range, srange, coords, HP, HPH, offset_obs)
+  CALL PDAFomi_localize_covar(obs_ice_thickness, dim, locweight, local_range, srange, &
+       coords, HP, HPH, offset_obs, verbose)
 
 END SUBROUTINE localize_covar_pdafomi
+
+
+
+!-------------------------------------------------------------------------------
+!> Call-back routine for init_obserr_f_pdaf
+!!
+!! This routine calls the routine PDAFomi_init_obserr_f
+!! for each observation type
+!!
+SUBROUTINE init_obserr_f_pdafomi(step, dim_obs_f, obs_f, obserr_f)
+
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_init_obserr_f
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+
+  IMPLICIT NONE
+
+! !ARGUMENTS:
+  INTEGER, INTENT(in) :: step                !< Current time step
+  INTEGER, INTENT(in) :: dim_obs_f           !< Full dimension of observation vector
+  REAL, INTENT(in)    :: obs_f(dim_obs_f)    !< Full observation vector
+  REAL, INTENT(out)   :: obserr_f(dim_obs_f) !< Full observation error stddev
+
+
+! *****************************************************************************
+! *** Initialize vector of observation errors for generating synthetic obs. ***
+! *****************************************************************************
+
+  CALL PDAFomi_init_obserr_f(obs_ice_thickness, obserr_f)
+  
+END SUBROUTINE init_obserr_f_pdafomi
+
+
+
+!-------------------------------------------------------------------------------
+!> Call-back routine for deallocate_obs
+!!
+!! This routine calls the routine PDAFomi_deallocate_obs
+!! for each observation type
+!!
+SUBROUTINE deallocate_obs_pdafomi(step)
+
+  ! Include PDAFomi function
+  USE PDAFomi, ONLY: PDAFomi_deallocate_obs
+  ! Include observation types (rename generic name)
+  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+
+  IMPLICIT NONE
+
+! *** Arguments ***
+  INTEGER, INTENT(in) :: step   !< Current time step
+
+
+! *************************************
+! *** Deallocate observation arrays ***
+! *************************************
+
+  CALL PDAFomi_deallocate_obs(obs_ice_thickness)
+
+END SUBROUTINE deallocate_obs_pdafomi

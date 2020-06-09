@@ -2,14 +2,14 @@
  tasks=2/
 
 &pdaf_nml
- istate_dir='/home/users/ys916780/PDAF_CICE/ic_files/',
+ istate_dir='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/',
  filtertype=5,
  subtype=0,
  dim_ens=2,
  delt_obs=24,
  screen=2,
  type_forget=0,
- forget=1.0,
+ forget=0.99,
  local_range=1.0,
  locweight=2,
  srange=1.0,
