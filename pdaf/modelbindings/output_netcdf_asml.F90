@@ -43,6 +43,15 @@ MODULE output_netcdf_asml
   DATA output_2dvar / 'uvel', 'vvel', 'sst' /
   DATA output_3dvar / 'aicen', 'vicen', 'vsnon', 'Tsfcn', 'sice001', 'qice001', 'qsno001' /
 
+! Array of 2d/3d state variable offsets (actually *indices* for var2d_offset and
+! var3d_offset) that are to be output to file.
+  INTEGER, DIMENSION(3) :: index2d_offset
+  INTEGER, DIMENSION(7) :: index3d_offset
+
+! These values can be found in mod_statevector (search for var2d_offset/var3d_offset).
+  DATA index2d_offset / 1, 2, 15 /
+  DATA index3d_offset / 1, 2, 3, 4, 12, 13, 26 /
+
 CONTAINS
 !BOP
 !
@@ -659,7 +668,7 @@ CONTAINS
 !EOP
 
 ! Local variables
-    INTEGER :: i, s, idx               ! Counters
+    INTEGER :: i, s, idx, idx_off      ! Counters
     INTEGER :: ID_time, ID_step        ! Variable IDs
     INTEGER :: ID_rmse, ID_trmse       ! Variable IDs
     INTEGER :: ID_mrmseN, ID_mtrmseN   ! Variable IDs
@@ -979,13 +988,15 @@ CONTAINS
        IF (write_states) THEN
           ! Write 2D states
           DO idx = 1, size(id_2dstate)
-             CALL write_2dstate(Id_2dstate(idx), var2d_offset(idx), dim, state, &
+             idx_off=index2d_offset(idx)
+             CALL write_2dstate(Id_2dstate(idx), var2d_offset(idx_off), dim, state, &
                   dimx, dimy, file_pos)
           END DO
 
           ! Write 3D states
           DO idx = 1, size(id_3dstate)
-             CALL write_3dstate(Id_3dstate(idx), var3d_offset(idx), dim, state, &
+             idx_off=index3d_offset(idx)
+             CALL write_3dstate(Id_3dstate(idx), var3d_offset(idx_off), dim, state, &
                   dimx, dimy, dimcat, file_pos)
           END DO
        END IF
@@ -993,13 +1004,15 @@ CONTAINS
        IF (write_ens) THEN
           ! Write 2D ensemble
           DO idx = 1, size(id_2dens)
-             CALL write_2dens(Id_2dens(idx), var2d_offset(idx), dim, dim_ens, &
+             idx_off=index2d_offset(idx)
+             CALL write_2dens(Id_2dens(idx), var2d_offset(idx_off), dim, dim_ens, &
                   ens, dimx, dimy, file_pos)
           END DO
 
           ! Write 3D ensemble
           DO idx = 1, size(id_3dens)
-             CALL write_3dens(Id_3dens(idx), var3d_offset(idx), dim, dim_ens, &
+             idx_off=index3d_offset(idx)
+             CALL write_3dens(Id_3dens(idx), var3d_offset(idx_off), dim, dim_ens, &
                   ens, dimx, dimy, dimcat, file_pos)
           END DO
        END IF
@@ -1250,7 +1263,7 @@ CONTAINS
     cnt4(2) = dimy
     cnt4(3) = dim_ens
     cnt4(4) = 1
-    stat(s) = NF90_PUT_VAR(fileid, idvar, ens, pos4, cnt4)
+    stat(s) = NF90_PUT_VAR(fileid, idvar, tmp_array, pos4, cnt4)
     s = s + 1
 
     DO i = 1,  s-1
