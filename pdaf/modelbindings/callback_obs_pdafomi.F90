@@ -33,7 +33,7 @@
 SUBROUTINE init_dim_obs_f_pdafomi(step, dim_obs_f)
 
   ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: assim_ice_thickness, init_dim_obs_f_ice_thickness
+  USE obs_ice_concen_pdafomi, ONLY: assim_ice_concen, init_dim_obs_f_ice_concen
 
   IMPLICIT NONE
 
@@ -42,7 +42,7 @@ SUBROUTINE init_dim_obs_f_pdafomi(step, dim_obs_f)
   INTEGER, INTENT(out) :: dim_obs_f !< Dimension of full observation vector
 
 ! *** Local variables ***
-  INTEGER :: dim_obs_f_ice_thickness ! Observation dimensions
+  INTEGER :: dim_obs_f_ice_concen ! Observation dimensions
 
 
 ! *********************************************
@@ -50,14 +50,14 @@ SUBROUTINE init_dim_obs_f_pdafomi(step, dim_obs_f)
 ! *********************************************
 
   ! Initialize number of observations
-  dim_obs_f_ice_thickness = 0
+  dim_obs_f_ice_concen = 0
 
   ! Call observation-specific routines
   ! The routines are independent, so it is not relevant
   ! in which order they are called
-  IF (assim_ice_thickness) CALL init_dim_obs_f_ice_thickness(step, dim_obs_f_ice_thickness)
+  IF (assim_ice_concen) CALL init_dim_obs_f_ice_concen(step, dim_obs_f_ice_concen)
 
-  dim_obs_f = dim_obs_f_ice_thickness ! + dim_obs_f_TYPE2 ...
+  dim_obs_f = dim_obs_f_ice_concen ! + dim_obs_f_TYPE2 ...
 
 END SUBROUTINE init_dim_obs_f_pdafomi
 
@@ -71,7 +71,7 @@ END SUBROUTINE init_dim_obs_f_pdafomi
 SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
 
   ! Include functions for different observations
-  USE obs_ice_thickness_pdafomi, ONLY: obs_op_f_ice_thickness
+  USE obs_ice_concen_pdafomi, ONLY: obs_op_f_ice_concen
 
   IMPLICIT NONE
 
@@ -95,7 +95,7 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
 
   ! The order of the calls determines how the different observations
   ! are ordered in the full state vector
-  CALL obs_op_f_ice_thickness(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
+  CALL obs_op_f_ice_concen(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
 
 END SUBROUTINE obs_op_f_pdafomi
 
@@ -112,7 +112,7 @@ SUBROUTINE init_obs_f_pdafomi(step, dim_obs_f, observation_f)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_obs_f
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -133,7 +133,7 @@ SUBROUTINE init_obs_f_pdafomi(step, dim_obs_f, observation_f)
   offset_obs_f = 0
 
   ! The order of the calls has to be consistent with those in obs_op_f_pdafomi
-  CALL PDAFomi_init_obs_f(obs_ice_thickness, dim_obs_f, observation_f, offset_obs_f)
+  CALL PDAFomi_init_obs_f(obs_ice_concen, dim_obs_f, observation_f, offset_obs_f)
 
 END SUBROUTINE init_obs_f_pdafomi
 
@@ -150,7 +150,7 @@ SUBROUTINE init_obsvar_pdafomi(step, dim_obs_p, obs_p, meanvar)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_obsvar_f
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -171,7 +171,7 @@ SUBROUTINE init_obsvar_pdafomi(step, dim_obs_p, obs_p, meanvar)
   ! Initialize observation counter (it will be incremented in PDAFomi_init_obsvar_f)
   cnt_obs_f = 0
 
-  CALL PDAFomi_init_obsvar_f(obs_ice_thickness, meanvar, cnt_obs_f)
+  CALL PDAFomi_init_obsvar_f(obs_ice_concen, meanvar, cnt_obs_f)
 
 END SUBROUTINE init_obsvar_pdafomi
 
@@ -188,7 +188,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_dim_obs_l
   ! Include observation types
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs, obs_ice_concen_l => thisobs_l
 
   ! Include localization radius and local coordinates
   USE mod_assimilation, &   
@@ -203,7 +203,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   INTEGER, INTENT(out) :: dim_obs_l  !< Local dimension of observation vector
 
 ! *** local variables ***
-  INTEGER :: dim_obs_l_ice_thickness ! Dimension of observation type
+  INTEGER :: dim_obs_l_ice_concen ! Dimension of observation type
   INTEGER :: offset_obs_l, offset_obs_f  ! local and full offsets
 
 
@@ -217,11 +217,11 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 
   ! Call init_dim_obs_l specific for each observation
   ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
-  CALL PDAFomi_init_dim_obs_l(obs_ice_thickness_l, obs_ice_thickness, coords_l, local_range, dim_obs_l_ice_thickness, &
+  CALL PDAFomi_init_dim_obs_l(obs_ice_concen_l, obs_ice_concen, coords_l, local_range, dim_obs_l_ice_concen, &
        offset_obs_l, offset_obs_f)
 
   ! Compute overall local observation dimension
-  dim_obs_l = dim_obs_l_ice_thickness ! + dim_obs_l_TYPE2 ...
+  dim_obs_l = dim_obs_l_ice_concen ! + dim_obs_l_TYPE2 ...
 
 END SUBROUTINE init_dim_obs_l_pdafomi
 
@@ -239,7 +239,7 @@ SUBROUTINE g2l_obs_pdafomi(domain_p, step, dim_obs_f, dim_obs_l, ostate_f, &
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_g2l_obs
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs, obs_ice_concen_l => thisobs_l
 
   IMPLICIT NONE
 
@@ -257,7 +257,7 @@ SUBROUTINE g2l_obs_pdafomi(domain_p, step, dim_obs_f, dim_obs_l, ostate_f, &
 ! *** to the current local analysis domain.           ***
 ! *******************************************************
 
-  CALL PDAFomi_g2l_obs(obs_ice_thickness_l, obs_ice_thickness, ostate_f, ostate_l)
+  CALL PDAFomi_g2l_obs(obs_ice_concen_l, obs_ice_concen, ostate_f, ostate_l)
 
 END SUBROUTINE g2l_obs_pdafomi
 
@@ -274,7 +274,7 @@ SUBROUTINE init_obs_l_pdafomi(domain_p, step, dim_obs_l, observation_l)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_obs_l
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs, obs_ice_concen_l => thisobs_l
 
   IMPLICIT NONE
 
@@ -289,7 +289,7 @@ SUBROUTINE init_obs_l_pdafomi(domain_p, step, dim_obs_l, observation_l)
 ! *** Initialize local observation vector ***
 ! *******************************************
 
-  CALL PDAFomi_init_obs_l(obs_ice_thickness_l, obs_ice_thickness, observation_l)
+  CALL PDAFomi_init_obs_l(obs_ice_concen_l, obs_ice_concen, observation_l)
 
 END SUBROUTINE init_obs_l_pdafomi
 
@@ -306,7 +306,7 @@ SUBROUTINE init_obsvar_l_pdafomi(domain_p, step, dim_obs_l, obs_l, meanvar_l)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_obsvar_l
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs, obs_ice_concen_l => thisobs_l
 
   IMPLICIT NONE
 
@@ -328,7 +328,7 @@ SUBROUTINE init_obsvar_l_pdafomi(domain_p, step, dim_obs_l, obs_l, meanvar_l)
   ! Initialize observation counter (it will be incremented in PDAFomi_init_obsvar_f)
   cnt_obs_l = 0
 
-  CALL PDAFomi_init_obsvar_l(obs_ice_thickness_l, obs_ice_thickness, meanvar_l, cnt_obs_l)
+  CALL PDAFomi_init_obsvar_l(obs_ice_concen_l, obs_ice_concen, meanvar_l, cnt_obs_l)
 
 END SUBROUTINE init_obsvar_l_pdafomi
 
@@ -345,7 +345,7 @@ SUBROUTINE prodRinvA_l_pdafomi(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_prodRinvA_l
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs, obs_ice_concen_l => thisobs_l
 
   ! Include variables for localization
   USE mod_assimilation, ONLY: local_range, locweight, srange
@@ -407,7 +407,7 @@ SUBROUTINE prodRinvA_l_pdafomi(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
 ! *** weights.                      ***
 ! *************************************
 
-  CALL PDAFomi_prodRinvA_l(obs_ice_thickness_l, obs_ice_thickness, dim_obs_l, rank, &
+  CALL PDAFomi_prodRinvA_l(obs_ice_concen_l, obs_ice_concen, dim_obs_l, rank, &
        locweight, local_range, srange, A_l, C_l, verbose)
   
 END SUBROUTINE prodRinvA_l_pdafomi
@@ -424,7 +424,7 @@ SUBROUTINE likelihood_l_pdafomi(domain_p, step, dim_obs_l, obs_l, resid_l, lhood
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_likelihood_l
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs, obs_ice_thickness_l => thisobs_l
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs, obs_ice_concen_l => thisobs_l
 
   ! Include variables for localization
   USE mod_assimilation, ONLY: local_range, locweight, srange
@@ -484,7 +484,7 @@ SUBROUTINE likelihood_l_pdafomi(domain_p, step, dim_obs_l, obs_l, resid_l, lhood
   lhood_l = 0.0
 
   ! Increment likelihood
-  CALL PDAFomi_likelihood_l(obs_ice_thickness_l, obs_ice_thickness, resid_l, locweight, &
+  CALL PDAFomi_likelihood_l(obs_ice_concen_l, obs_ice_concen, resid_l, locweight, &
        local_range, srange, lhood_l, verbose)
 
 END SUBROUTINE likelihood_l_pdafomi
@@ -502,7 +502,7 @@ SUBROUTINE prodRinvA_pdafomi(step, dim_obs_p, ncol, obs_p, A_p, C_p)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_prodRinvA
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -521,7 +521,7 @@ SUBROUTINE prodRinvA_pdafomi(step, dim_obs_p, ncol, obs_p, A_p, C_p)
 ! ***           C = R   A           ***
 ! *************************************
 
-  CALL PDAFomi_prodRinvA(obs_ice_thickness, ncol, A_p, C_p)
+  CALL PDAFomi_prodRinvA(obs_ice_concen, ncol, A_p, C_p)
   
 END SUBROUTINE prodRinvA_pdafomi
 
@@ -538,7 +538,7 @@ SUBROUTINE likelihood_pdafomi(step, dim_obs, obs, resid, lhood)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_likelihood
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -558,7 +558,7 @@ SUBROUTINE likelihood_pdafomi(step, dim_obs, obs, resid, lhood)
   lhood = 0.0
 
   ! Increment likelihood
-  CALL PDAFomi_likelihood(obs_ice_thickness, dim_obs, obs, resid, lhood)
+  CALL PDAFomi_likelihood(obs_ice_concen, dim_obs, obs, resid, lhood)
 
 END SUBROUTINE likelihood_pdafomi
 
@@ -575,7 +575,7 @@ SUBROUTINE add_obs_error_pdafomi(step, dim_obs_p, C_p)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_add_obs_error
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -592,7 +592,7 @@ SUBROUTINE add_obs_error_pdafomi(step, dim_obs_p, C_p)
 ! *** here, thus R is diagonal      ***
 ! *************************************
 
-  CALL PDAFomi_add_obs_error(obs_ice_thickness, dim_obs_p, C_p)
+  CALL PDAFomi_add_obs_error(obs_ice_concen, dim_obs_p, C_p)
   
 END SUBROUTINE add_obs_error_pdafomi
 
@@ -610,7 +610,7 @@ SUBROUTINE init_obscovar_pdafomi(step, dim_obs, dim_obs_p, covar, m_state_p, &
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_obscovar
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -627,7 +627,7 @@ SUBROUTINE init_obscovar_pdafomi(step, dim_obs, dim_obs_p, covar, m_state_p, &
 ! ***   Initialize covariances      ***
 ! *************************************
 
-  CALL PDAFomi_init_obscovar(obs_ice_thickness, dim_obs_p, covar, isdiag)
+  CALL PDAFomi_init_obscovar(obs_ice_concen, dim_obs_p, covar, isdiag)
   
 END SUBROUTINE init_obscovar_pdafomi
 
@@ -644,7 +644,7 @@ SUBROUTINE localize_covar_pdafomi(dim, dim_obs, HP, HPH)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_localize_covar
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   ! Include variables for localization
   USE mod_assimilation, ONLY: local_range, locweight, srange
@@ -695,7 +695,7 @@ SUBROUTINE localize_covar_pdafomi(dim, dim_obs, HP, HPH)
   offset_obs = 0
 
   ! Apply localization
-  CALL PDAFomi_localize_covar(obs_ice_thickness, dim, locweight, local_range, srange, &
+  CALL PDAFomi_localize_covar(obs_ice_concen, dim, locweight, local_range, srange, &
        coords, HP, HPH, offset_obs, verbose)
 
 END SUBROUTINE localize_covar_pdafomi
@@ -713,7 +713,7 @@ SUBROUTINE init_obserr_f_pdafomi(step, dim_obs_f, obs_f, obserr_f)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_init_obserr_f
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -728,7 +728,7 @@ SUBROUTINE init_obserr_f_pdafomi(step, dim_obs_f, obs_f, obserr_f)
 ! *** Initialize vector of observation errors for generating synthetic obs. ***
 ! *****************************************************************************
 
-  CALL PDAFomi_init_obserr_f(obs_ice_thickness, obserr_f)
+  CALL PDAFomi_init_obserr_f(obs_ice_concen, obserr_f)
   
 END SUBROUTINE init_obserr_f_pdafomi
 
@@ -745,7 +745,7 @@ SUBROUTINE deallocate_obs_pdafomi(step)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_deallocate_obs
   ! Include observation types (rename generic name)
-  USE obs_ice_thickness_pdafomi, ONLY: obs_ice_thickness => thisobs
+  USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
 
   IMPLICIT NONE
 
@@ -757,6 +757,6 @@ SUBROUTINE deallocate_obs_pdafomi(step)
 ! *** Deallocate observation arrays ***
 ! *************************************
 
-  CALL PDAFomi_deallocate_obs(obs_ice_thickness)
+  CALL PDAFomi_deallocate_obs(obs_ice_concen)
 
 END SUBROUTINE deallocate_obs_pdafomi
