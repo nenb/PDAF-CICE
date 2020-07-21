@@ -335,20 +335,20 @@ CONTAINS
     ELSE
        ! obs_field1 is aicen
        DO k = 1, ncat
-          DO j = 60,60!1, ny_global
-             DO i= 48,48!1, nx_global
-                obs_field1(i,j,k) = 0.1
+          DO j = 57,57!1, ny_global
+             DO i= 81,81!1, nx_global
+                obs_field1(i,j,k) = 0.2
              END DO
           END DO
        END DO
        ! obs_field2 is vicen
        DO k = 1, ncat
-          DO j = 60,60!1, ny_global
-             DO i= 48,48!1, nx_global
+          DO j = 57,57!1, ny_global
+             DO i= 81,81!1, nx_global
                 IF (k == 1) THEN
-                   obs_field2(i,j,k) = 0.1!0.3
+                   obs_field2(i,j,k) = 4.0!0.3
                 ELSE
-                   obs_field2(i,j,k) = 0.1!REAL(k) - 1.0
+                   obs_field2(i,j,k) = 4.0!REAL(k) - 1.0
                 END IF
              END DO
           END DO
@@ -446,8 +446,8 @@ CONTAINS
              END DO
              obs_p(cnt) = ice_thick_field(i,j)
              ! Use (i+1, j+1) due to ghost cells
-             ocoord_p(1, cnt) = tlon(i+1,j+1,1)*180.0/pi
-             ocoord_p(2, cnt) = tlat(i+1,j+1,1)*180.0/pi
+             ocoord_p(1, cnt) = tlon(i+1,j+1,1)
+             ocoord_p(2, cnt) = tlat(i+1,j+1,1)
           END IF
        END DO
     END DO
@@ -488,7 +488,7 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
 
-    ivar_obs_p = rms_ice_thickness
+    ivar_obs_p = 1/(rms_ice_thickness*rms_ice_thickness)
 
 
 ! ****************************************

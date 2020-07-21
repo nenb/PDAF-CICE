@@ -63,7 +63,7 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 
   ! Now, convert to T longitude/latitude grid values.
   ! NOTE: tlon and tlat are in radians, and there are ghost cells.
-  coords_l(1)=tlon(i+1,j+1,1)*180.0/pi
-  coords_l(2)=tlat(i+1,j+1,1)*180.0/pi
+  coords_l(1)=tlon(i+1,j+1,1)
+  coords_l(2)=tlat(i+1,j+1,1)
 
 END SUBROUTINE init_dim_l_pdaf

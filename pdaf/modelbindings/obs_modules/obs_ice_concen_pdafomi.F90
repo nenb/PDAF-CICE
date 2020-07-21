@@ -61,7 +61,7 @@ MODULE obs_ice_concen_pdafomi
   ! be use-included in init_pdaf() and initialized there.
   LOGICAL            :: obs_file=.FALSE. ! Are observations read from file or manually created
   CHARACTER(len=200) :: file_ice_concen= &
-       '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/iced.2008-01-01-00000.nc'  ! netcdf file holding observations
+       '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/iced.2012-01-01-00000.nc'  ! netcdf file holding observations
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -286,7 +286,7 @@ CONTAINS
           DO j = 1, ny_global
              DO i= 1, nx_global
                 obs_field1(i,j,k) = 0.0
-                IF (i==81 .AND. J==57) THEN
+                IF (i<=85 .AND. i>=78 .AND. j<=61 .AND. j>=55) THEN
                         obs_field1(i,j,1) = 1.0
                         obs_field1(i,j,2) = 0.0
                         obs_field1(i,j,3) = 0.0
@@ -322,7 +322,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_concen_field(i,j) > puny .AND. ice_concen_field(i,j) <=1.0) cnt = cnt + 1
+          IF (ice_concen_field(i,j) > puny) cnt = cnt + 1
        END DO
     END DO
     dim_obs_p = cnt
@@ -386,8 +386,8 @@ CONTAINS
              END DO
              obs_p(cnt) = ice_concen_field(i,j)
              ! Use (i+1, j+1) due to ghost cells
-             ocoord_p(1, cnt) = tlon(i+1,j+1,1)*180.0/pi
-             ocoord_p(2, cnt) = tlat(i+1,j+1,1)*180.0/pi
+             ocoord_p(1, cnt) = tlon(i+1,j+1,1)
+             ocoord_p(2, cnt) = tlat(i+1,j+1,1)
           END IF
        END DO
     END DO
@@ -428,7 +428,7 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
 
-    ivar_obs_p = 1/rms_ice_concen
+    ivar_obs_p = 1/(rms_ice_concen*rms_ice_concen)
 
 
 ! ****************************************
