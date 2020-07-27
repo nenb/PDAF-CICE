@@ -37,6 +37,8 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
        ONLY: nx_global, ny_global, ncat
   USE mod_statevector, &
        ONLY: fill2d_ensarray, fill3d_ensarray
+  USE mod_parallel_pdaf, &
+       ONLY: abort_parallel
 
   IMPLICIT NONE
 
@@ -94,7 +96,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in opening initial state file:', istate_ncfile
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
 
@@ -119,7 +121,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*, '(/9x, a, 3x,i1 )') &
                 'NetCDF error in reading dimensions from initial state file, s=', i
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
 
@@ -127,7 +129,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      IF (dim_lon_ic .NE. nx_global .OR. dim_lat_ic .NE. ny_global .OR. &
           dim_cat_ic .NE. ncat) THEN
         WRITE (*,'(/3x, a)') 'ERROR: Dimensions in initial state file not valid.'
-        STOP
+        CALL abort_parallel()
      END IF
 
      ! *******************************************
@@ -141,7 +143,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in closing initial state file:', istate_ncfile
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
 

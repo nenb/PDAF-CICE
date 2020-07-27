@@ -58,12 +58,12 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
   ! Coordinates are defined using T longitude/latitude grid values
 
   ! First, compute (i,j) grid coordinates of local domain
-  j = INT(CEILING(REAL(domain_p)/REAL(nx_global)))
-  i = INT(domain_p) - (j-1)*REAL(nx_global)
+  j = INT( CEILING(REAL(domain_p)/REAL(nx_global)) )
+  i = domain_p - (j-1)*(nx_global)
 
   ! Now, convert to T longitude/latitude grid values.
   ! NOTE: tlon and tlat are in radians, and there are ghost cells.
-  coords_l(1)=tlon(i+1,j+1,1)*180.0/pi
-  coords_l(2)=tlat(i+1,j+1,1)*180.0/pi
+  coords_l(1)=tlon(i+1,j+1,1)
+  coords_l(2)=tlat(i+1,j+1,1)
 
 END SUBROUTINE init_dim_l_pdaf

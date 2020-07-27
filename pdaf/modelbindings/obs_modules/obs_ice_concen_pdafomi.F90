@@ -227,7 +227,6 @@ CONTAINS
        ! Read observation values and their coordinates,
        ! also read observation error information if available
        
-       
        !1. First read fractional ice area 'aicen'
        s = 1
        stat(s) = NF90_OPEN(trim(file_ice_concen), NF90_NOWRITE, ncid_in)
@@ -277,15 +276,13 @@ CONTAINS
              CALL abort_parallel()
           END IF
        END DO
-
-       
        
     ELSE
        ! obs_field1 is aicen
        DO k = 1, ncat
           DO j = 1, ny_global
              DO i= 1, nx_global
-                obs_field1(i,j,k) = 0.0
+                obs_field1(i,j,k) = 1.0
                 IF (i==81 .AND. J==57) THEN
                         obs_field1(i,j,1) = 1.0
                         obs_field1(i,j,2) = 0.0
@@ -377,7 +374,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_concen_field(i,j) > puny) THEN
+          IF (ice_concen_field(i,j) > puny .AND. ice_concen_field(i,j) <=1.0) THEN
              cnt = cnt + 1
              DO k = 1, ncat
                 ! Compute locations in state vector of (i,j,:) indices
@@ -386,8 +383,8 @@ CONTAINS
              END DO
              obs_p(cnt) = ice_concen_field(i,j)
              ! Use (i+1, j+1) due to ghost cells
-             ocoord_p(1, cnt) = tlon(i+1,j+1,1)*180.0/pi
-             ocoord_p(2, cnt) = tlat(i+1,j+1,1)*180.0/pi
+             ocoord_p(1, cnt) = tlon(i+1,j+1,1)
+             ocoord_p(2, cnt) = tlat(i+1,j+1,1)
           END IF
        END DO
     END DO
@@ -428,8 +425,7 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
 
-    ivar_obs_p = 1/rms_ice_concen
-
+    ivar_obs_p = 1/(rms_ice_concen*rms_ice_concen)
 
 ! ****************************************
 ! *** Gather global observation arrays ***
@@ -441,15 +437,14 @@ CONTAINS
     CALL PDAFomi_gather_obs_f(thisobs, dim_obs_p, obs_p, ivar_obs_p, ocoord_p, &
          thisobs%ncoord, local_range, dim_obs_f)
 
-
 ! ********************
 ! *** Finishing up ***
 ! ********************
 
     ! Deallocate all local arrays
-    DEALLOCATE(obs_field1)
-    DEALLOCATE(ice_concen_field)
     DEALLOCATE(obs_p, ocoord_p, ivar_obs_p)
+    DEALLOCATE(ice_concen_field)
+    DEALLOCATE(obs_field1)  
 
     ! Arrays in THISOBS have to be deallocated after the analysis step
     ! by a call to deallocate_obs() in prepoststep_pdaf.

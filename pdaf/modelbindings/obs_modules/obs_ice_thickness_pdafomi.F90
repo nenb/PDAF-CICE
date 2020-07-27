@@ -334,6 +334,7 @@ CONTAINS
 !   ! User manually specifies observation field.
     ELSE
        ! obs_field1 is aicen
+       obs_field1=0.0
        DO k = 1, ncat
           DO j = 60,60!1, ny_global
              DO i= 48,48!1, nx_global
@@ -342,6 +343,7 @@ CONTAINS
           END DO
        END DO
        ! obs_field2 is vicen
+       obs_field2=0.0
        DO k = 1, ncat
           DO j = 60,60!1, ny_global
              DO i= 48,48!1, nx_global
@@ -488,7 +490,7 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
 
-    ivar_obs_p = rms_ice_thickness
+    ivar_obs_p = 1/(rms_ice_thickness*rms_ice_thickness)
 
 
 ! ****************************************

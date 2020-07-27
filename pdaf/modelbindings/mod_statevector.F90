@@ -522,6 +522,8 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
        ONLY: istate_dir
   USE ice_domain_size, &
        ONLY: nx_global, ny_global
+  USE mod_parallel_pdaf, &
+       ONLY: abort_parallel
 
   IMPLICIT NONE
 
@@ -558,7 +560,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in opening initial state file:', istate_ncfile
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
 
@@ -587,7 +589,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
               WRITE(*,'(/9x, a, 3x, a)') &
                    'NetCDF error in reading initial state file, var=', &
                    trim(id2d_list(idx))
-              STOP
+              CALL abort_parallel()
            END IF
         END DO
 
@@ -612,7 +614,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in closing initial state file:', istate_ncfile
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
   END DO member2d
@@ -632,6 +634,8 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
        ONLY: istate_dir
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat
+  USE mod_parallel_pdaf, &
+       ONLY: abort_parallel
 
   IMPLICIT NONE
 
@@ -668,7 +672,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in opening initial state file:', istate_ncfile
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
 
@@ -697,7 +701,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
               WRITE(*,'(/9x, a, 3x, a)') &
                    'NetCDF error in reading initial state file, var=', &
                    trim(id3d_list(idx))
-              STOP
+              CALL abort_parallel()
            END IF
         END DO
 
@@ -725,7 +729,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
         IF (stat(i) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in closing initial state file:', istate_ncfile
-           STOP
+           CALL abort_parallel()
         END IF
      END DO
   END DO member3d
