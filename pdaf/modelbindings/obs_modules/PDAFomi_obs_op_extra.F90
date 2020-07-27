@@ -2,14 +2,12 @@ MODULE PDAFomi_obs_op_extra
 !-------------------------------------------------------------------------------
 ! Extra observation operators required for CICE
 
-  USE PDAFomi_obs_f, ONLY: obs_f
+  USE PDAFomi_obs_f, ONLY: obs_f, PDAFomi_gather_obsstate_f
 
 CONTAINS
 
   SUBROUTINE PDAFomi_obs_op_f_ice_thickness(thisobs, nrows, state_p, obs_f_all, offset_obs)
 
-    USE ice_domain_size, &
-         ONLY: ncat
     USE ice_constants, &
          ONLY: c0, puny
 
@@ -24,6 +22,7 @@ CONTAINS
 
 ! *** Local variables ***
     INTEGER :: i, row                  ! Counter
+    REAL, ALLOCATABLE :: ostate_p(:)       ! local observed part of state vector
     REAL, ALLOCATABLE :: ostate1_p(:)  ! temporary quantity aicen*vicen
     REAL, ALLOCATABLE :: ostate2_p(:)  ! temporary quantity aice
 
@@ -33,11 +32,24 @@ CONTAINS
 ! *** operator H on vector or matrix column ***
 ! *********************************************
 
-    obs_exist:IF (thisobs%dim_obs_p>0) THEN
-       ALLOCATE(ostate1_p(thisobs%dim_obs_p))
-       ALLOCATE(ostate2_p(thisobs%dim_obs_p))
-       ! Initialize observed part of state vector by summing categories
-       ! and forming quotient -> hi = vicen / aicen
+    doassim: IF (thisobs%doassim == 1) THEN
+
+       IF (.NOT.ALLOCATED(thisobs%id_obs_p)) THEN
+          WRITE (*,*) 'ERROR: PDAFomi_obs_op_f_ice_thickness - thisobs%id_obs_p is not allocated'
+       END IF
+
+       ! *** PE-local: Initialize observed part state vector by averaging
+
+       IF (thisobs%dim_obs_p>0) THEN
+          ALLOCATE(ostate_p(thisobs%dim_obs_p))
+          ALLOCATE(ostate1_p(thisobs%dim_obs_p))
+          ALLOCATE(ostate2_p(thisobs%dim_obs_p))
+       ELSE
+          ALLOCATE(ostate_p(1))
+          ALLOCATE(ostate1_p(1))
+          ALLOCATE(ostate2_p(1))
+       END IF
+
        DO i = 1, thisobs%dim_obs_p
           ostate1_p(i) = c0
           ostate2_p(i) = c0
@@ -47,20 +59,22 @@ CONTAINS
              ostate2_p(i) = ostate2_p(i) + state_p(thisobs%id_obs_p(row,i))
           END DO
           IF (ostate1_p(i) > puny .AND. ostate2_p(i) > puny) THEN
-             obs_f_all(offset_obs+i) = ostate1_p(i) / ostate2_p(i)
+             ostate_p(i) = ostate1_p(i) / ostate2_p(i)
           ELSE
-             obs_f_all(offset_obs+i) = c0
+             ostate_p(i) = c0
           END IF
-       END DO
+       ENDDO
 
        ! *** Store offset (mandatory!)
        thisobs%off_obs_f = offset_obs
 
-       ! Increment offset in observaton vector
-       offset_obs = offset_obs + thisobs%dim_obs_f
+       ! *** Global: Gather full observed state vector
+       CALL PDAFomi_gather_obsstate_f(thisobs, ostate_p, obs_f_all, offset_obs)
 
-       DEALLOCATE(ostate1_p,ostate2_p)
-    END IF obs_exist
+       ! *** Clean up
+       DEALLOCATE(ostate_p, ostate1_p,ostate2_p)
+
+    END IF doassim
 
   END SUBROUTINE PDAFomi_obs_op_f_ice_thickness
 
@@ -71,8 +85,6 @@ CONTAINS
 
   SUBROUTINE PDAFomi_obs_op_f_ice_concen(thisobs, nrows, state_p, obs_f_all, offset_obs)
 
-    USE ice_domain_size, &
-         ONLY: ncat
     USE ice_constants, &
          ONLY: c0, puny
 
@@ -87,6 +99,7 @@ CONTAINS
 
 ! *** Local variables ***
     INTEGER :: i, row                  ! Counter
+    REAL, ALLOCATABLE :: ostate_p(:)   ! local observed part of state vector
     REAL, ALLOCATABLE :: ostate1_p(:)  ! temporary quantity aicen
 
 
@@ -95,8 +108,22 @@ CONTAINS
 ! *** operator H on vector or matrix column ***
 ! *********************************************
 
-    obs_exist:IF (thisobs%dim_obs_p>0) THEN
-       ALLOCATE(ostate1_p(thisobs%dim_obs_p))
+    doassim: IF (thisobs%doassim == 1) THEN
+
+       IF (.NOT.ALLOCATED(thisobs%id_obs_p)) THEN
+          WRITE (*,*) 'ERROR: PDAFomi_obs_op_f_ice_concen - thisobs%id_obs_p is not allocated'
+       END IF
+
+       ! *** PE-local: Initialize observed part state vector by averaging
+
+       IF (thisobs%dim_obs_p>0) THEN
+          ALLOCATE(ostate_p(thisobs%dim_obs_p))
+          ALLOCATE(ostate1_p(thisobs%dim_obs_p))
+       ELSE
+          ALLOCATE(ostate_p(1))
+          ALLOCATE(ostate1_p(1))
+       END IF
+
        ! Initialize observed part of state vector by summing categories
        ! and forming quotient -> hi = vicen / aicen
        DO i = 1, thisobs%dim_obs_p
@@ -106,20 +133,22 @@ CONTAINS
                   state_p(thisobs%id_obs_p(row,i))
           END DO
           IF (ostate1_p(i) > puny) THEN
-             obs_f_all(offset_obs+i) = ostate1_p(i)
+             ostate_p(i) = ostate1_p(i)
           ELSE
-             obs_f_all(offset_obs+i) = c0
+             ostate_p(i) = c0
           END IF
-       END DO
+       ENDDO
 
        ! *** Store offset (mandatory!)
        thisobs%off_obs_f = offset_obs
 
-       ! Increment offset in observaton vector
-       offset_obs = offset_obs + thisobs%dim_obs_f
+       ! *** Global: Gather full observed state vector
+       CALL PDAFomi_gather_obsstate_f(thisobs, ostate_p, obs_f_all, offset_obs)
 
-       DEALLOCATE(ostate1_p)
-    END IF obs_exist
+       ! *** Clean up
+       DEALLOCATE(ostate_p, ostate1_p)
+
+    END IF doassim
 
   END SUBROUTINE PDAFomi_obs_op_f_ice_concen
 

@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_gather_obs_f2_flex.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_gather_obs_f2_flex.F90 496 2020-06-09 15:26:17Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_gather_obs_f2_flex --- Gather a full observation array
@@ -60,9 +60,9 @@ SUBROUTINE PDAF_gather_obs_f2_flex(dim_obs_p, dim_obs_f, coords_p, coords_f, &
 ! !ARGUMENTS:
   INTEGER, INTENT(in) :: dim_obs_p    ! PE-local observation dimension
   INTEGER, INTENT(in) :: dim_obs_f    ! Full observation dimension
+  INTEGER, INTENT(in) :: nrows        ! Number of rows in array
   REAL, INTENT(in)  :: coords_p(nrows, dim_obs_p)  ! PE-local array
   REAL, INTENT(out) :: coords_f(nrows, dim_obs_f)  ! Full gathered array
-  INTEGER, INTENT(in) :: nrows     ! Number of rows in array
   INTEGER, INTENT(out) :: status   ! Status flag: (0) no error
 
 ! !CALLING SEQUENCE:

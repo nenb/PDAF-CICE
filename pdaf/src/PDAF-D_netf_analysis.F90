@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_netf_analysis.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_netf_analysis.F90 496 2020-06-09 15:26:17Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_netf_analysis --- NETF analysis cf. Toedter & Ahrens (2015)
@@ -165,11 +165,6 @@ SUBROUTINE PDAF_netf_analysis(step, dim_p, dim_obs_p, dim_ens, &
      ALLOCATE(obs_p(dim_obs_p))
      IF (allocflag == 0) CALL PDAF_memcount(3, 'r', dim_obs_p)
 
-     ! get observation vector
-     CALL PDAF_timeit(50, 'new')
-     CALL U_init_obs(step, dim_obs_p, obs_p)
-     CALL PDAF_timeit(50, 'old')
-
      ! Allocate tempory arrays for obs-ens_i
      ALLOCATE(resid_i(dim_obs_p))
      ALLOCATE(Rinvresid(dim_obs_p))
@@ -181,6 +176,13 @@ SUBROUTINE PDAF_netf_analysis(step, dim_p, dim_obs_p, dim_ens, &
         CALL PDAF_timeit(44, 'new')
         CALL U_obs_op(step, dim_p, dim_obs_p, ens_p(:, member), resid_i)
         CALL PDAF_timeit(44, 'old')
+
+        IF (member==1) THEN
+           ! get observation vector (has to be after U_obs_op for OMI)
+           CALL PDAF_timeit(50, 'new')
+           CALL U_init_obs(step, dim_obs_p, obs_p)
+           CALL PDAF_timeit(50, 'old')
+        END IF
 
         CALL PDAF_timeit(51, 'new')
         resid_i = obs_p - resid_i 

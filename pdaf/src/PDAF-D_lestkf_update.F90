@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_lestkf_update.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_lestkf_update.F90 473 2020-06-03 11:59:15Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_lestkf_update --- Control analysis update of the LESTKF
@@ -373,7 +373,7 @@ SUBROUTINE  PDAF_lestkf_update(step, dim_p, dim_obs_f, dim_ens, rank, &
 
   CALL PDAF_timeit(6, 'new')
 
-!$OMP PARALLEL default(shared) private(dim_l, dim_obs_l, ens_l, state_l, stateinc_l, TA_l, Ainv_l, flag) firstprivate(forget_ana_l)
+!$OMP PARALLEL default(shared) private(dim_l, dim_obs_l, ens_l, state_l, stateinc_l, TA_l, Ainv_l, flag, forget_ana_l)
 
   forget_ana_l = forget_ana
 
@@ -388,7 +388,7 @@ SUBROUTINE  PDAF_lestkf_update(step, dim_p, dim_obs_f, dim_ens, rank, &
   Ainv_l = 0.0
 
 !$OMP BARRIER
-!$OMP DO firstprivate(cnt_maxlag) lastprivate(cnt_maxlag)
+!$OMP DO firstprivate(cnt_maxlag) lastprivate(cnt_maxlag) schedule(runtime)
   localanalysis: DO domain_p = 1, n_domains_p
 
      ! local state dimension
