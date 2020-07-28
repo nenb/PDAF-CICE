@@ -30,6 +30,12 @@ SUBROUTINE init_pdaf()
        forget, rank_analysis_enkf, locweight, local_range, srange, &
        filename, type_trans, type_sqrt, delt_obs
   USE mod_statevector ! Routines and variables for state vector
+  USE obs_ice_concen_pdafomi, &
+       ONLY: rms_ice_concen
+  USE obs_ice_thickness_pdafomi, &
+       ONLY: rms_ice_thickness
+  USE output_netcdf_asml, &
+       ONLY: file_asml
 
 
   IMPLICIT NONE
@@ -126,8 +132,10 @@ SUBROUTINE init_pdaf()
   delt_obs = 24     ! Number of time steps between analysis/assimilation steps
 
 ! *** specifications for observations ***
-  rms_obs = 0.5    ! Observation error standard deviation
-                   ! for the Gaussian distribution 
+  rms_ice_concen = 0.1    ! Observation error standard deviation
+                          ! for the Gaussian distribution 
+  rms_ice_thickness = 0.1 ! Observation error standard deviation
+                          ! for the Gaussian distribution 
 ! *** Localization settings
   locweight = 0     ! Type of localizating weighting
                     !   (0) constant weight of 1
@@ -138,7 +146,8 @@ SUBROUTINE init_pdaf()
   local_range = 1.0e5  ! Range in grid points for observation domain in local filters
   srange = local_range  ! Support range for 5th-order polynomial
                     ! or range for 1/e for exponential weighting
-
+  file_asml = './asml.nc'
+ 
 ! *** Read namelist file for PDAF ***
   CALL read_config_pdaf()
 

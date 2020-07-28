@@ -23,7 +23,7 @@ MODULE output_netcdf_asml
 
 ! !PUBLIC DATA MEMBERS:
 ! Name of the NetCDF output file
-  CHARACTER(len=100) :: file_asml = 'asml.nc'
+  CHARACTER(len=100) :: file_asml            ! Name of output file; set via namelist.pdaf
   INTEGER :: delt_write_asml = 1             ! Output interval in assimilation intervals
   LOGICAL :: write_states    = .TRUE.        ! Whether to write estimated states
   LOGICAL :: write_stats     = .FALSE.       ! Whether to write ensemble statistics

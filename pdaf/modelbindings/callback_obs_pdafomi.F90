@@ -105,8 +105,8 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
 END SUBROUTINE obs_op_f_pdafomi
 
 
-
 !-------------------------------------------------------------------------------
+
 !> Call-back routine for init_dim_obs_l
 !!
 !! This routine calls the routine PDAFomi_init_dim_obs_l
@@ -117,6 +117,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   ! Include functions for different observations
   USE obs_ice_thickness_pdafomi, ONLY: init_dim_obs_l_ice_thickness
   USE obs_ice_concen_pdafomi, ONLY: init_dim_obs_l_ice_concen
+
 
   IMPLICIT NONE
 
@@ -151,8 +152,8 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 END SUBROUTINE init_dim_obs_l_pdafomi
 
 
-
 !-------------------------------------------------------------------------------
+
 !> Call-back routine for deallocate_obs
 !!
 !! This routine calls the routine PDAFomi_deallocate_obs

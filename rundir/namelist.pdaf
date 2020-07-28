@@ -13,5 +13,7 @@
  local_range=1.0,
  locweight=2,
  srange=1.0,
- rms_obs=0.5
+ rms_ice_concen=0.1,
+ rms_ice_thickness=0.1,
+ file_asml='./asml.nc'
 /

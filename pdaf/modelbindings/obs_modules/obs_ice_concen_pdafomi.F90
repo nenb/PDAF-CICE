@@ -54,14 +54,14 @@ MODULE obs_ice_concen_pdafomi
   ! Variables which are inputs to the module (usually set in init_pdaf)
   LOGICAL :: assim_ice_concen=.TRUE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_concen=0.1      !< Observation error standard deviation (for constant errors)
+  REAL    :: rms_ice_concen      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
   LOGICAL            :: obs_file=.FALSE. ! Are observations read from file or manually created
   CHARACTER(len=200) :: file_ice_concen= &
-       '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/iced.2008-01-01-00000.nc'  ! netcdf file holding observations
+       '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/iced.2012-01-01-00000.nc'  ! netcdf file holding observations
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -282,8 +282,8 @@ CONTAINS
        DO k = 1, ncat
           DO j = 1, ny_global
              DO i= 1, nx_global
-                obs_field1(i,j,k) = 1.0
-                IF (i==81 .AND. J==57) THEN
+                obs_field1(i,j,k) = 0.0
+                IF (i<=85 .AND. i>=78 .AND. j<=61 .AND. j>=55) THEN
                         obs_field1(i,j,1) = 1.0
                         obs_field1(i,j,2) = 0.0
                         obs_field1(i,j,3) = 0.0
@@ -319,7 +319,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_concen_field(i,j) > puny .AND. ice_concen_field(i,j) <=1.0) cnt = cnt + 1
+          IF (ice_concen_field(i,j) > puny) cnt = cnt + 1
        END DO
     END DO
     dim_obs_p = cnt
