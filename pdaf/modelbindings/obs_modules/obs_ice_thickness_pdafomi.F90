@@ -52,7 +52,7 @@ MODULE obs_ice_thickness_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_thickness=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_thickness=.FALSE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_thickness      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
@@ -336,8 +336,8 @@ CONTAINS
        ! obs_field1 is aicen
        obs_field1=0.0
        DO k = 1, ncat
-          DO j = 57,57!1, ny_global
-             DO i= 81,81!1, nx_global
+          DO j = 35,40!1, ny_global
+             DO i= 58,62!1, nx_global
                 obs_field1(i,j,k) = 0.2
              END DO
           END DO
@@ -345,12 +345,12 @@ CONTAINS
        ! obs_field2 is vicen
        obs_field2=0.0
        DO k = 1, ncat
-          DO j = 57,57!1, ny_global
-             DO i= 81,81!1, nx_global
+          DO j = 35,40!1, ny_global
+             DO i= 58,62!1, nx_global
                 IF (k == 1) THEN
-                   obs_field2(i,j,k) = 4.0!0.3
+                   obs_field2(i,j,k) = 2.0!0.3
                 ELSE
-                   obs_field2(i,j,k) = 4.0!REAL(k) - 1.0
+                   obs_field2(i,j,k) = 2.0!REAL(k) - 1.0
                 END IF
              END DO
           END DO

@@ -283,7 +283,7 @@ CONTAINS
           DO j = 1, ny_global
              DO i= 1, nx_global
                 obs_field1(i,j,k) = 0.0
-                IF (i<=85 .AND. i>=78 .AND. j<=61 .AND. j>=55) THEN
+                IF (i>=76 .AND. i<=82 .AND. j>=52 .AND. j<=61) THEN
                         obs_field1(i,j,1) = 1.0
                         obs_field1(i,j,2) = 0.0
                         obs_field1(i,j,3) = 0.0
