@@ -1502,6 +1502,8 @@
 
       use ice_constants, only: c0, p5
 
+      use ice_flux, only: sst !Note I added this line to add sst to diagnostics
+
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block,&! block dimensions
          ilo,ihi,jlo,jhi,   &! beginning and end of physical domain
@@ -1578,6 +1580,7 @@
          write (nu_diag,*)   &
                     'Warning: Departure points out of bounds in remap'
 	 write (nu_diag,*) 'dt, uvel, vvel =', dt, uvel(i,j), vvel(i,j) !Note: I added this line to see these vars when it crashes
+	 write (nu_diag,*) 'sst = ', sst(i,j,1)
          write (nu_diag,*) 'my_task, i, j =', my_task, i, j
          write (nu_diag,*) 'dpx, dpy =', dpx(i,j), dpy(i,j)
          write (nu_diag,*) 'HTN(i,j), HTN(i+1,j) =', HTN(i,j), HTN(i+1,j)

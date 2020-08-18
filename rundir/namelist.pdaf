@@ -1,11 +1,11 @@
 &tasks_nml
- tasks=20/
+ tasks=30/
 
 &pdaf_nml
  istate_dir='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/',
  filtertype=5,
  subtype=0,
- dim_ens=20,
+ dim_ens=30,
  delt_obs=24,
  screen=2,
  type_forget=0,
@@ -15,5 +15,5 @@
  srange=200000.0,
  rms_ice_concen=0.1,
  rms_ice_thickness=0.1,
- file_asml='./asml.nc'
+ file_asml='/storage/silver/cpom/fm828007/asml.nc'
 /

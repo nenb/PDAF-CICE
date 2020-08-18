@@ -4,7 +4,7 @@
   , year_init      = 1979
   , istep0         = 0
   , dt             = 3600.0
-  , npt            = 100
+  , npt            = 8760
   , ndtd           = 1
   , runtype        = 'initial'
   , ice_ic         = 'default'
@@ -203,8 +203,8 @@
   , f_hs           = 'dm'
   , f_Tsfc         = 'm'
   , f_sice         = 'm'
-  , f_uvel         = 'm'
-  , f_vvel         = 'm'
+  , f_uvel         = 'dm'
+  , f_vvel         = 'dm'
   , f_uatm         = 'm'
   , f_vatm         = 'm'
   , f_fswdn        = 'm'
