@@ -1607,6 +1607,7 @@
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
+
       fsw_file = &
            trim(atm_data_dir)//'ISCCPM/MONTHLY/RADFLX/swdn.1996.dat'
       call file_year(fsw_file,yr)

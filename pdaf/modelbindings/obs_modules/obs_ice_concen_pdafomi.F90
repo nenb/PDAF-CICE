@@ -52,16 +52,19 @@ MODULE obs_ice_concen_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_concen=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_concen=.FALSE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_concen      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
-  LOGICAL            :: obs_file=.FALSE. ! Are observations read from file or manually created
-  CHARACTER(len=200) :: file_ice_concen= &
-       '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/iced.2012-01-01-00000.nc'  ! netcdf file holding observations
+  LOGICAL            :: obs_file=.TRUE. ! Are observations read from file or manually created
+  CHARACTER(len=200) :: file_ice_concen = &
+  '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+  LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
+!choose correct years to assimilate
+  INTEGER :: year = 1980                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -174,6 +177,8 @@ CONTAINS
          ONLY: pi, puny
     USE mod_statevector, &
          ONLY: aicen_offset
+    USE ice_calendar, &
+	 ONLY: mday, month, nyr, year_init, idate, monthp, daymo
 
     IMPLICIT NONE
 
@@ -190,12 +195,18 @@ CONTAINS
     INTEGER :: pos_nc(3),cnt_nc(3)         ! Vectors for reading 2D fields
     INTEGER :: dim_obs_p                   ! Number of process-local observations
     INTEGER :: status                      ! Status flag
+    INTEGER :: mon			   ! month (mm)
+    INTEGER :: day  			   ! day (dd)
     REAL, ALLOCATABLE :: obs_field1(:,:,:)    ! Observation field read from file
     REAL, ALLOCATABLE :: ice_concen_field(:,:) ! Combination of aicen and vicen
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
     REAL, ALLOCATABLE :: ivar_obs_p(:)        ! PE-local inverse observation error variance
     REAL, ALLOCATABLE :: ocoord_p(:,:)        ! PE-local observation coordinates
-
+    CHARACTER(len=4) :: yeart			   ! year in strings
+    CHARACTER(len=2) :: montht			   ! month in strings
+    CHARACTER(len=2) :: dayt			   ! day in strings
+    CHARACTER(len=200) :: file_ice_directory = &
+    '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
 
 ! *********************************************
 ! *** Initialize full observation dimension ***
@@ -203,7 +214,6 @@ CONTAINS
 
     IF (mype_filter==0) &
          WRITE (*,'(8x,a)') 'Assimilate observations - OBS_ice_concen'
-
     ! Store whether to assimilate this observation type (used in routines below)
     IF (assim_ice_concen) thisobs%doassim = 1
 
@@ -214,10 +224,31 @@ CONTAINS
     ! Number of coordinates used for distance computation
     ! The distance compution starts from the first row
     thisobs%ncoord = 2
-
     ! Arrays for aicen and vicen
     ALLOCATE(obs_field1(nx_global, ny_global, ncat))
-    
+    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
+    IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
+       day=mday-1
+       mon = month
+    ELSE
+       mon=monthp
+       day=daymo(mon)
+    END IF
+    IF (day == 1 .AND. mon == 1) THEN
+       IF (first_year .EQV. .FALSE.) THEN
+          year = year + 1
+       ELSE
+          first_year = .FALSE.
+       END IF
+    END IF
+    WRITE(yeart,'(i4.4)') year
+    WRITE(montht,'(i2.2)') mon
+    WRITE(dayt,'(i2.2)') day
+    WRITE(*,*) "IS IT FIRST DAY?", first_year
+    !file_ice_concen='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+    WRITE(file_ice_concen,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht) &
+    //'-'//trim(dayt)//'.nc'
+    WRITE(*,*) 'FILE ICE CONCEN: ', file_ice_concen
  !  ! We read in fields from a file
     IF (obs_file) THEN
        ! **********************************
@@ -245,7 +276,7 @@ CONTAINS
        ! ******************************************
 
        s=1
-       stat(s) = NF90_INQ_VARID(ncid_in, 'aicen', id_3dvar)
+       stat(s) = NF90_INQ_VARID(ncid_in, 'aicen_d', id_3dvar)
 
        ! Read state variable data from file
        pos_nc = (/ 1, 1, 1 /)
@@ -319,7 +350,9 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_concen_field(i,j) > puny) cnt = cnt + 1
+          IF (ice_concen_field(i,j) >=0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
+             cnt = cnt + 1
+          END IF
        END DO
     END DO
     dim_obs_p = cnt
@@ -374,7 +407,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_concen_field(i,j) > puny .AND. ice_concen_field(i,j) <=1.0) THEN
+          IF (ice_concen_field(i,j) >=0 .AND. ice_concen_field(i,j) <=1.0) THEN
              cnt = cnt + 1
              DO k = 1, ncat
                 ! Compute locations in state vector of (i,j,:) indices

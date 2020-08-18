@@ -32,8 +32,6 @@ SUBROUTINE init_pdaf()
   USE mod_statevector ! Routines and variables for state vector
   USE obs_ice_concen_pdafomi, &
        ONLY: rms_ice_concen
-  USE obs_ice_thickness_pdafomi, &
-       ONLY: rms_ice_thickness
   USE output_netcdf_asml, &
        ONLY: file_asml
 
@@ -133,8 +131,6 @@ SUBROUTINE init_pdaf()
 
 ! *** specifications for observations ***
   rms_ice_concen = 0.1    ! Observation error standard deviation
-                          ! for the Gaussian distribution 
-  rms_ice_thickness = 0.1 ! Observation error standard deviation
                           ! for the Gaussian distribution 
 ! *** Localization settings
   locweight = 0     ! Type of localizating weighting

@@ -5,8 +5,22 @@ MODULE mod_statevector
 ! manipulating the state vector.
 
 ! !USES:
+
+  USE ice_domain_size, ONLY: nx_global, ny_global, ncat
+
   IMPLICIT NONE
+
   SAVE
+
+! Define variables to later store monthly mean thickness in a grid cell
+! and per thickness category in a grid cell
+! Also temporary arrays hi_d and hi_grid_d store daily values
+! hin and hi_m have ghost cells to be consistent with the true CICE state vector
+
+  REAL, DIMENSION (nx_global+2,ny_global+2,ncat) :: hin
+  REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_m
+  REAL, DIMENSION (nx_global+2,ny_global+2,ncat) :: hi_d
+  REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_grid_d
 
 ! 2d state vector variables - start index
   INTEGER :: uvel_offset
@@ -24,6 +38,7 @@ MODULE mod_statevector
   INTEGER :: stress12_3_offset
   INTEGER :: stress12_4_offset
   INTEGER :: sst_offset
+  INTEGER :: hi_m_offset
 #ifdef USE_STRESS
   INTEGER :: a11_1_offset
   INTEGER :: a11_2_offset
@@ -37,9 +52,9 @@ MODULE mod_statevector
 
 ! Array holding 2d state variable offsets
 #ifdef USE_STRESS
-  INTEGER :: var2d_offset(23)
+  INTEGER :: var2d_offset(24)
 #else
-  INTEGER :: var2d_offset(15)
+  INTEGER :: var2d_offset(16)
 #endif
 
 ! 2d state vector variables - dimension size
@@ -58,6 +73,7 @@ MODULE mod_statevector
   INTEGER :: stress12_3_dim_state
   INTEGER :: stress12_4_dim_state
   INTEGER :: sst_dim_state
+  INTEGER :: hi_m_dim_state
 #ifdef USE_STRESS
   INTEGER :: a11_1_dim_state
   INTEGER :: a11_2_dim_state
@@ -71,9 +87,9 @@ MODULE mod_statevector
 
 ! Array holding 2d state variable dimensions
 #ifdef USE_STRESS
-  INTEGER :: var2d_dim_state(23)
+  INTEGER :: var2d_dim_state(24)
 #else
-  INTEGER :: var2d_dim_state(15)
+  INTEGER :: var2d_dim_state(16)
 #endif
 
 ! 3d state vector variables - start index
@@ -103,9 +119,10 @@ MODULE mod_statevector
   INTEGER :: sice007_offset
   INTEGER :: qice007_offset
   INTEGER :: qsno001_offset
+  INTEGER :: hin_offset
 
 ! Array holding 3d state variable offsets
-  INTEGER :: var3d_offset(26)
+  INTEGER :: var3d_offset(27)
 
 ! 3d state vector variables - dimension size
   INTEGER :: aicen_dim_state
@@ -134,31 +151,32 @@ MODULE mod_statevector
   INTEGER :: sice007_dim_state
   INTEGER :: qice007_dim_state
   INTEGER :: qsno001_dim_state
+  INTEGER :: hin_dim_state
 
 ! Array holding 3d state variable dimensions
-  INTEGER :: var3d_dim_state(26)
+  INTEGER :: var3d_dim_state(27)
 
 ! Array for 2d/3d state variable .NC ids
 #ifdef USE_STRESS
-  CHARACTER(len=20), DIMENSION(23) :: id2d_list
+  CHARACTER(len=20), DIMENSION(24) :: id2d_list
 #else
-  CHARACTER(len=20), DIMENSION(15) :: id2d_list
+  CHARACTER(len=20), DIMENSION(16) :: id2d_list
 #endif
-  CHARACTER(len=20), DIMENSION(26) :: id3d_list
+  CHARACTER(len=20), DIMENSION(27) :: id3d_list
 
 ! Fill array of 2d state variable .NC ids
 #ifdef USE_STRESS
   DATA id2d_list / 'uvel', 'vvel', 'stressp_1', 'stressp_2',&
        'stressp_3', 'stressp_4', 'stressm_1', 'stressm_2',&
        'stressm_3', 'stressm_4', 'stress12_1', 'stress12_2',&
-       'stress12_3', 'stress12_4', 'sst', 'a11_1', 'a11_2',&
+       'stress12_3', 'stress12_4', 'sst', 'hi_m',  'a11_1', 'a11_2',&
        'a11_3', 'a11_4',  'a12_1', 'a12_2', 'a12_3',&
        'a11_2' /
 #else
   DATA id2d_list / 'uvel', 'vvel', 'stressp_1', 'stressp_2',&
        'stressp_3', 'stressp_4', 'stressm_1', 'stressm_2',&
        'stressm_3', 'stressm_4', 'stress12_1', 'stress12_2',&
-       'stress12_3', 'stress12_4', 'sst' /
+       'stress12_3', 'stress12_4', 'sst', 'hi_m' /
 #endif
 
 ! Fill array of 3d state variable .NC ids
@@ -167,11 +185,109 @@ MODULE mod_statevector
        'hpnd', 'ipnd', 'sice001', 'qice001', 'sice002',&
        'qice002', 'sice003', 'qice003', 'sice004', 'qice004',&
        'sice005', 'qice005', 'sice006', 'qice006', 'qice007',&
-       'sice007', 'qsno001' /
+       'sice007', 'qsno001', 'hin' /
 
 
 CONTAINS
 
+SUBROUTINE calc_hi_average()
+
+! !DESCRIPTION:
+! This routine stores the thicknesses from each day and calculates a 
+! monthly mean ice thickness.
+
+  USE ice_calendar, ONLY: daymo, mday, month, monthp
+  USE ice_state, ONLY: aicen,vicen
+  USE ice_constants, ONLY: c0, puny
+
+  IMPLICIT NONE
+
+  INTEGER :: i, j, k ! Counters
+  INTEGER :: true_day ! Finds the real day
+  INTEGER :: true_month ! Finds the real month
+  LOGICAL :: end_of_month=.FALSE. !Whether to reset the running averages
+  REAL :: temp_sum,temp_grid_sum,temp_one,temp_two !temp values
+  
+  end_of_month=.FALSE.
+  
+  IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
+     true_day=mday-1
+     true_month=month
+  ELSE
+     true_month=monthp
+     true_day=daymo(true_month)
+     end_of_month=.TRUE.
+  END IF
+  !true_day=mday
+  !true_month=month
+  !IF (mday /= daymo(month)) THEN
+  !   end_of_month=.FALSE.
+  !ELSE
+  !   end_of_month=.TRUE.
+  !END IF
+
+  IF (true_day == 1) THEN
+     DO k=1,ncat
+        DO j=1,ny_global
+	   DO i=1,nx_global
+              hi_grid_d(i+1,j+1) = c0
+              hi_d(i+1,j+1,k) = c0
+	   END DO
+        END DO
+     END DO
+  END IF
+
+
+
+  DO k=1,ncat !Put daily values in the array
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (aicen(i+1,j+1,k,1) > puny) THEN
+              hi_d(i+1,j+1,k)=hi_d(i+1,j+1,k) + (vicen(i+1,j+1,k,1) * aicen(i+1,j+1,k,1))
+           ELSE
+	      hi_d(i+1,j+1,k)=hi_d(i+1,j+1,k)
+ 	   END IF
+        END DO
+     END DO
+  END DO
+
+
+  DO j=1,ny_global
+     DO i=1,nx_global
+        temp_one=c0
+        temp_two=c0
+        DO k=1,ncat
+           temp_one=temp_one+vicen(i+1,j+1,k,1)
+           temp_two=temp_two+aicen(i+1,j+1,k,1)
+        END DO
+        IF (i==49 .AND. j==79) THEN
+        END IF
+        IF (temp_one > puny .AND. temp_two > puny) THEN
+           hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + temp_one
+        ELSE
+	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
+	END IF
+     END DO
+  END DO  
+
+  DO k=1,ncat
+     DO j=1,ny_global
+        DO i=1,nx_global
+           hin(i+1,j+1,k) = hi_d(i+1,j+1,k) / REAL(true_day,8)
+        END DO
+     END DO
+  END DO
+
+  DO j=1,ny_global
+     DO i=1,nx_global
+        hi_m(i+1,j+1)=hi_grid_d(i+1,j+1)/REAL(true_day,8)
+     END DO
+  END DO
+  
+
+
+
+END SUBROUTINE calc_hi_average
 
 SUBROUTINE calc_2d_offset()
 
@@ -180,8 +296,6 @@ SUBROUTINE calc_2d_offset()
 ! It then stores these offset values in a 1D array.
 
 ! !USES:
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global
 
   IMPLICIT NONE
 
@@ -201,8 +315,9 @@ SUBROUTINE calc_2d_offset()
   stress12_3_offset = stress12_2_offset + nx_global*ny_global
   stress12_4_offset = stress12_3_offset + nx_global*ny_global
   sst_offset = stress12_4_offset + nx_global*ny_global
+  hi_m_offset = sst_offset + nx_global*ny_global
 #ifdef USE_STRESS
-  a11_1_offset = sst_offset + nx_global*ny_global
+  a11_1_offset = hi_m_offset + nx_global*ny_global
   a11_2_offset = a11_1_offset + nx_global*ny_global
   a11_3_offset = a11_2_offset + nx_global*ny_global
   a11_4_offset = a11_3_offset + nx_global*ny_global
@@ -228,15 +343,16 @@ SUBROUTINE calc_2d_offset()
   var2d_offset(13) = stress12_3_offset
   var2d_offset(14) = stress12_4_offset
   var2d_offset(15) = sst_offset
+  var2d_offset(16) = hi_m_offset
 #ifdef USE_STRESS
-  var2d_offset(16) = a11_1_offset
-  var2d_offset(17) = a11_2_offset
-  var2d_offset(18) = a11_3_offset
-  var2d_offset(19) = a11_4_offset
-  var2d_offset(20) = a12_1_offset
-  var2d_offset(21) = a12_2_offset
-  var2d_offset(22) = a12_3_offset
-  var2d_offset(23) = a12_4_offset
+  var2d_offset(17) = a11_1_offset
+  var2d_offset(18) = a11_2_offset
+  var2d_offset(19) = a11_3_offset
+  var2d_offset(20) = a11_4_offset
+  var2d_offset(21) = a12_1_offset
+  var2d_offset(22) = a12_2_offset
+  var2d_offset(23) = a12_3_offset
+  var2d_offset(24) = a12_4_offset
 #endif
 
 END SUBROUTINE calc_2d_offset
@@ -249,8 +365,6 @@ SUBROUTINE calc_3d_offset()
 ! It then stores these offset values in a 1D array.
 
 ! !USES:
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat
 
   IMPLICIT NONE
 
@@ -262,7 +376,7 @@ SUBROUTINE calc_3d_offset()
   aicen_offset = a12_4_offset + nx_global*ny_global ! Continue
   ! from 2d state variable a12_4 offset
 #else
-  aicen_offset = sst_offset + nx_global*ny_global ! Continue
+  aicen_offset = hi_m_offset + nx_global*ny_global ! Continue
   ! from 2d state variable sst offset
 #endif
   vicen_offset = aicen_offset + nx_global*ny_global*ncat
@@ -290,6 +404,7 @@ SUBROUTINE calc_3d_offset()
   sice007_offset = qice006_offset + nx_global*ny_global*ncat
   qice007_offset = sice007_offset + nx_global*ny_global*ncat
   qsno001_offset = qice007_offset + nx_global*ny_global*ncat
+  hin_offset = qsno001_offset + nx_global*ny_global*ncat
 
   ! Fill  array of state variable offsets
   var3d_offset(1) = aicen_offset
@@ -318,6 +433,7 @@ SUBROUTINE calc_3d_offset()
   var3d_offset(24) = qice007_offset
   var3d_offset(25) = sice007_offset
   var3d_offset(26) = qsno001_offset
+  var3d_offset(27) = hin_offset
 
 END SUBROUTINE calc_3d_offset
 
@@ -327,8 +443,6 @@ SUBROUTINE calc_2d_dim()
 ! This routine calculates the dimension of the 2d state variables.
 
 ! !USES:
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global
 
   IMPLICIT NONE
 
@@ -348,6 +462,7 @@ SUBROUTINE calc_2d_dim()
   stress12_3_dim_state = nx_global*ny_global
   stress12_4_dim_state = nx_global*ny_global
   sst_dim_state = nx_global*ny_global
+  hi_m_dim_state = nx_global*ny_global
 #ifdef USE_STRESS
   a11_1_dim_state = nx_global*ny_global
   a11_2_dim_state = nx_global*ny_global
@@ -375,15 +490,16 @@ SUBROUTINE calc_2d_dim()
   var2d_dim_state(13) = stress12_3_dim_state
   var2d_dim_state(14) = stress12_4_dim_state
   var2d_dim_state(15) = sst_dim_state
+  var2d_dim_state(16) = hi_m_dim_state
 #ifdef USE_STRESS
-  var2d_dim_state(16) = a11_1_dim_state
-  var2d_dim_state(17) = a11_2_dim_state
-  var2d_dim_state(18) = a11_3_dim_state
-  var2d_dim_state(19) = a11_4_dim_state
-  var2d_dim_state(20) = a12_1_dim_state
-  var2d_dim_state(21) = a12_2_dim_state
-  var2d_dim_state(22) = a12_3_dim_state
-  var2d_dim_state(23) = a12_4_dim_state
+  var2d_dim_state(17) = a11_1_dim_state
+  var2d_dim_state(18) = a11_2_dim_state
+  var2d_dim_state(19) = a11_3_dim_state
+  var2d_dim_state(20) = a11_4_dim_state
+  var2d_dim_state(21) = a12_1_dim_state
+  var2d_dim_state(22) = a12_2_dim_state
+  var2d_dim_state(23) = a12_3_dim_state
+  var2d_dim_state(24) = a12_4_dim_state
 #endif
 
 END SUBROUTINE calc_2d_dim
@@ -394,8 +510,6 @@ SUBROUTINE calc_3d_dim()
 ! This routine calculates the dimension of the 3d state variables.
 
 ! !USES:
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat
 
   IMPLICIT NONE
 
@@ -426,6 +540,7 @@ SUBROUTINE calc_3d_dim()
   sice007_dim_state = nx_global*ny_global*ncat
   qice007_dim_state = nx_global*ny_global*ncat
   qsno001_dim_state = nx_global*ny_global*ncat
+  hin_dim_state = nx_global*ny_global*ncat
 
   ! Fill  array of state variable dimensions
   var3d_dim_state(1) = aicen_dim_state
@@ -454,6 +569,7 @@ SUBROUTINE calc_3d_dim()
   var3d_dim_state(24) = qice007_dim_state
   var3d_dim_state(25) = sice007_dim_state
   var3d_dim_state(26) = qsno001_dim_state
+  var3d_dim_state(27) = hin_dim_state
 
 END SUBROUTINE calc_3d_dim
 
@@ -496,8 +612,7 @@ INTEGER FUNCTION calc_local_dim()
 ! This function calculates the local domain dimension.
 
   ! !USES:
-  USE ice_domain_size, &
-       ONLY: ncat
+  
   IMPLICIT NONE
 
   ! Dimension size is total number of state variables.
@@ -520,8 +635,6 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
        ONLY: year_init
   USE mod_assimilation, &
        ONLY: istate_dir
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global
   USE mod_parallel_pdaf, &
        ONLY: abort_parallel
 
@@ -582,8 +695,13 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
         pos = (/ 1, 1 /)
         cnt = (/ nx_global , ny_global /)
         s = s + 1
+	IF (id2d_list(idx) /= 'hi_m') THEN
         stat(s) = NF90_GET_VAR(ncid_in, id_2dvar, var2d, start=pos, count=cnt)
+	ELSE
+	var2d=0
+	END IF
 
+	IF (id2d_list(idx) /= 'hi_m') THEN
         DO i = 1, s
            IF (stat(i) .NE. NF90_NOERR) THEN
               WRITE(*,'(/9x, a, 3x, a)') &
@@ -592,6 +710,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
               CALL abort_parallel()
            END IF
         END DO
+	END IF
 
         ! Write fields into state vector
         DO j = 1,ny_global
@@ -632,8 +751,6 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
        ONLY: year_init
   USE mod_assimilation, &
        ONLY: istate_dir
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat
   USE mod_parallel_pdaf, &
        ONLY: abort_parallel
 
@@ -660,7 +777,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
      ! *** Open file containing initial state ***
      ! ******************************************
 
-     yr = year_init + member - 1
+     yr = year_init  + member - 1
      WRITE(year, '(i4)') yr
      istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
      s = 1
@@ -694,8 +811,13 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
         pos = (/ 1, 1, 1 /)
         cnt = (/ nx_global , ny_global , ncat /)
         s = s + 1
+	IF (id3d_list(idx) /= 'hin') THEN
         stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, var3d, start=pos, count=cnt)
+	ELSE
+	var3d=0
+	END IF
 
+	IF (id3d_list(idx) /= 'hin') THEN
         DO i = 1, s
            IF (stat(i) .NE. NF90_NOERR) THEN
               WRITE(*,'(/9x, a, 3x, a)') &
@@ -704,6 +826,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
               CALL abort_parallel()
            END IF
         END DO
+	END IF
 
         ! Write fields into state vector:
         DO k = 1,ncat
@@ -743,8 +866,6 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global
   USE ice_state, &
        ONLY: uvel, vvel
   USE ice_flux, &
@@ -860,6 +981,12 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
      END DO
   END DO
 
+  DO j=1,ny_global
+     DO i=1,nx_global
+        state_p(i+(j-1)*nx_global + hi_m_offset) = hi_m(i+1,j+1)
+     END DO
+  END DO
+
 #ifdef USE_STRESS
   DO j = 1,ny_global
      DO i = 1,nx_global
@@ -919,8 +1046,6 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat
   USE ice_state, &
        ONLY: aicen, vicen, vsnon, trcrn, nt_Tsfc, nt_iage, &
        nt_FY, nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
@@ -1013,32 +1138,32 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
      END DO
   END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                apnd_offset) = trcrn(i+1,j+1,nt_apnd,k,1)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                apnd_offset) = trcrn(i+1,j+1,nt_apnd,k,1)
+!        END DO
+!     END DO
+!  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                hpnd_offset) = trcrn(i+1,j+1,nt_hpnd,k,1)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                hpnd_offset) = trcrn(i+1,j+1,nt_hpnd,k,1)
+!        END DO
+!     END DO
+!  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                ipnd_offset) = trcrn(i+1,j+1,nt_ipnd,k,1)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                ipnd_offset) = trcrn(i+1,j+1,nt_ipnd,k,1)
+!        END DO
+!     END DO
+!  END DO
 
   DO k =1,ncat
      DO j = 1,ny_global
@@ -1175,6 +1300,15 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
      END DO
   END DO
 
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                hin_offset) = hin(i+1,j+1,k)
+        END DO
+     END DO
+  END DO
+
 END SUBROUTINE fill3d_statevector
 
 SUBROUTINE distrib2d_statevector(dim_p, state_p)
@@ -1184,8 +1318,6 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
 
 ! !USES:
   USE netcdf
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global
   USE ice_state, &
        ONLY: uvel, vvel
   USE ice_flux, &
@@ -1297,7 +1429,14 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
 
   DO j = 1,ny_global
      DO i = 1,nx_global
-        sst(i+1,j+1,1) = state_p(i+(j-1)*nx_global + sst_offset)
+         sst(i+1,j+1,1) = state_p(i+(j-1)*nx_global + sst_offset)
+!        sst(i+1,j+1,1) = min(state_p(i+(j-1)*nx_global + sst_offset),sst(i+1,j+1,1)+0.1,sst(i+1,j+1,1)-0.1)
+     END DO
+  END DO
+
+  DO j = 1,ny_global
+     DO i = 1,nx_global
+        hi_m(i+1,j+1) = state_p(i+(j-1)*nx_global + hi_m_offset)
      END DO
   END DO
 
@@ -1360,12 +1499,12 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 
   ! !USES:
   USE netcdf
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat
   USE ice_state, &
        ONLY: aicen, vicen, vsnon, trcrn, nt_Tsfc, nt_iage, &
        nt_FY, nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
        nt_sice, nt_qice, nt_qsno, aice, aice0, vice
+  USE ice_flux, &
+       ONLY: sst
   USE ice_constants, &
        ONLY: c0, puny, rhoi, Lfresh, rhos
 
@@ -1574,24 +1713,21 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      ! Update logical switch
      firsttime = .FALSE.
 
-  ! If Ice is being created need special routine to define enthalpies - for now
-  ! use minimum values but later may want to use add_new_ice in
-  ! ice_therm_itd.f90??
+  ! When PDAF creates ice use special routine  we need to prescribe ice and snow enthalpy
   ELSE
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              ! When PDAF creates ice we need to create ice enthalpy and
-              ! salinity but assume no snow and no snow enthalpy
-              IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset) > c0) THEN
+              IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset) > puny) THEN
 		 IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset) > 0.1) THEN
 	            WRITE(*,*) 'WARNING: creating significant ice at grid cell'
-		    WRITE(*,*) 'i, j, ncat, new ice:', i, j, k, state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset)
-                 END IF 
+		    WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
+                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset)
+		 END IF
 		 aicen(i+1,j+1,k,1) = state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset)
                  vicen(i+1,j+1,k,1) = state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + vicen_offset)
-                 vsnon(i+1,j+1,k,1) = c0
-                 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
+                 vsnon(i+1,j+1,k,1) = state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + vsnon_offset)
+                 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh 
                  newq = -rhoi*Lfresh
                  trcrn(i+1,j+1,nt_qice,k,1) = newq
                  trcrn(i+1,j+1,nt_qice+1,k,1) = newq
@@ -1659,7 +1795,7 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 	         trcrn(i+1,j+1,nt_sice+6,k,1) = &
                       state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
                       sice007_offset)
-             END IF
+              END IF
            END DO
         END DO
      END DO
@@ -1692,55 +1828,57 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      END DO
   END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           trcrn(i+1,j+1,nt_alvl,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                alvl_offset)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           trcrn(i+1,j+1,nt_alvl,k,1) = &
+!                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                alvl_offset)
+!        END DO
+!     END DO
+!  END DO
+!
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           trcrn(i+1,j+1,nt_vlvl,k,1) = &
+!                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                vlvl_offset)
+!        END DO
+!     END DO
+!  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           trcrn(i+1,j+1,nt_vlvl,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                vlvl_offset)
-        END DO
-     END DO
-  END DO
+!!! Following state variables not updated to avoid CICE crashes!
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           trcrn(i+1,j+1,nt_apnd,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                apnd_offset)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           trcrn(i+1,j+1,nt_apnd,k,1) = &
+!                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                apnd_offset)
+!        END DO
+!     END DO
+!  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           trcrn(i+1,j+1,nt_hpnd,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                hpnd_offset)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           trcrn(i+1,j+1,nt_hpnd,k,1) = &
+!                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                hpnd_offset)
+!        END DO
+!     END DO
+!  END DO
 
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           trcrn(i+1,j+1,nt_ipnd,k,1) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                ipnd_offset)
-        END DO
-     END DO
-  END DO
+!  DO k =1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           trcrn(i+1,j+1,nt_ipnd,k,1) = &
+!                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+!                ipnd_offset)
+!        END DO
+!     END DO
+!  END DO
 
 
 !  DO k =1,ncat
@@ -1828,6 +1966,17 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 !     END DO
 !  END DO
 
+
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           hin(i+1,j+1,k) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                hin_offset)
+        END DO
+     END DO
+  END DO
+
 END SUBROUTINE distrib3d_statevector
 
 SUBROUTINE statevar_brutemod()
@@ -1837,12 +1986,11 @@ SUBROUTINE statevar_brutemod()
   ! Also contains updates of some state variable derived quantities.
 
 ! !USES:
-  USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat
   USE ice_state, &
-       ONLY: aicen, vicen, vsnon, trcrn, nt_qsno, nt_sice, nt_qice, nt_Tsfc, uvel, vvel
+       ONLY: aicen, vicen, vsnon, trcrn, nt_qsno, nt_sice, nt_qice, nt_Tsfc, &
+       nt_hpnd, nt_apnd, nt_ipnd
   USE ice_constants, &
-         ONLY: c0, c1, puny, rhos, Lfresh
+         ONLY: c0, c1, puny, rhos, rhoi, Lfresh
 
   IMPLICIT NONE
 
@@ -1850,15 +1998,19 @@ SUBROUTINE statevar_brutemod()
 
 ! *** local variables ***
   INTEGER :: i, j, k        ! Counters
-  REAL :: icetotal          ! Sum of ice concentration categories
-
+  REAL :: icetotal, icetemp          ! Sum of ice concentration categories
+!!!!!!!!!!!!!! If total ice is greater than one, redistribute with same
+!percentages in each category
+!Also now try redistributing volumes to conserve mass
+  
+!!!!!!!!!!!!!! aice, vice, and vsno cannnot be negative, if so set others to 0!
 
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
 
 !!!!! snow and ice enthalpies cannot be positive, salinities cannot be negative
-
+	  
            IF (trcrn(i+1,j+1,nt_qsno,k,1) > 0.0) THEN
                 trcrn(i+1,j+1,nt_qsno,k,1) = 0.0
            END IF
@@ -1904,23 +2056,16 @@ SUBROUTINE statevar_brutemod()
 	   IF (trcrn(i+1,j+1,nt_qice+6,k,1) > 0.0) THEN
 		trcrn(i+1,j+1,nt_qice+6,k,1) = 0.0
 	   END IF
-
-!!!!!!!!!!!!!! aice, vice, and vsno cannnot be negative
-
-           IF (aicen(i+1,j+1,k,1) < 0.0) THEN
-                aicen(i+1,j+1,k,1) = 0.0
-                vsnon(i+1,j+1,k,1) = 0.0
-                vicen(i+1,j+1,k,1) = 0.0
-
+           IF (trcrn(i+1,j+1,nt_apnd,k,1) < puny) THEN
+                trcrn(i+1,j+1,nt_apnd,k,1) = c0
            END IF
-           IF (vsnon(i+1,j+1,k,1) < 0.0) THEN
-                vsnon(i+1,j+1,k,1) = 0.0
+           IF (trcrn(i+1,j+1,nt_hpnd,k,1) < puny) THEN
+                trcrn(i+1,j+1,nt_hpnd,k,1) = c0
            END IF
-           IF (vicen(i+1,j+1,k,1) < 0.0) THEN
-                aicen(i+1,j+1,k,1) = 0.0
-                vsnon(i+1,j+1,k,1) = 0.0
-                vicen(i+1,j+1,k,1) = 0.0
+           IF (trcrn(i+1,j+1,nt_ipnd,k,1) < puny) THEN
+                trcrn(i+1,j+1,nt_ipnd,k,1) = c0
            END IF
+
 
 
 !!!!!!!!!!!!!! Tsfcn cannot be above melting temperature of snow (0.0 Deg Celsius)
@@ -1934,19 +2079,57 @@ SUBROUTINE statevar_brutemod()
      END DO
   END DO
 
-!!!!!!!!!!!!!! If total ice is greater than one, redistribute with same
-!percentages in each category
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (aicen(i+1,j+1,k,1) > c1) THEN
+              aicen(i+1,j+1,k,1) = c1
+           END IF
+        END DO
+     END DO
+  END DO
+ 
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (aicen(i+1,j+1,k,1) <= puny) THEN
+                aicen(i+1,j+1,k,1) = c0
+                vsnon(i+1,j+1,k,1) = c0
+                trcrn(i+1,j+1,nt_qsno,k,1) = c0
+                vicen(i+1,j+1,k,1) = c0
+           END IF
+           IF (vsnon(i+1,j+1,k,1) <= puny) THEN
+                vsnon(i+1,j+1,k,1) = c0
+                aicen(i+1,j+1,k,1) = c0
+                trcrn(i+1,j+1,nt_qsno,k,1) = c0
+                vicen(i+1,j+1,k,1) = c0
+           END IF
+           IF (vicen(i+1,j+1,k,1) <= puny) THEN
+                aicen(i+1,j+1,k,1) = c0
+                vsnon(i+1,j+1,k,1) = c0
+                trcrn(i+1,j+1,nt_qsno,k,1) = c0
+                vicen(i+1,j+1,k,1) = c0
+           END IF
+
+        END DO
+     END DO
+  END DO
 
   DO j = 1,ny_global
      DO i = 1,nx_global
-        icetotal = SUM(aicen(i+1,j+1,1:ncat,1))
+        icetotal = c0
+        DO k=1,5
+                icetotal = icetotal + aicen(i+1,j+1,k,1)
+        END DO 
+        ! If total ice concentration greater than 1, redistribute
         IF (icetotal > c1) THEN
            aicen(i+1,j+1,1:ncat,1) = aicen(i+1,j+1,1:ncat,1)/icetotal
+           !vicen(i+1,j+1,1:ncat,1) = vicen(i+1,j+1,1:ncat,1)/icetotal
+           !vsnon(i+1,j+1,1:ncat,1) = vsnon(i+1,j+1,1:ncat,1)/icetotal
         END IF
      END DO
   END DO
 
-!!!!!!!!!!!!!! Recalculate snow and ice volumes?
 
 !!!!!!!!!!!!! If no longer ice in a category, reset values in that grid cell for
 !that category
@@ -1958,6 +2141,9 @@ SUBROUTINE statevar_brutemod()
               aicen(i+1,j+1,k,1) = c0
               vsnon(i+1,j+1,k,1) = c0
               vicen(i+1,j+1,k,1) = c0
+              trcrn(i+1,j+1,nt_apnd,k,1) = c0
+              trcrn(i+1,j+1,nt_hpnd,k,1) = c0
+              trcrn(i+1,j+1,nt_ipnd,k,1) = c0
               trcrn(i+1,j+1,nt_qsno,k,1) = c0
               trcrn(i+1,j+1,nt_qice,k,1) = c0
               trcrn(i+1,j+1,nt_qice+1,k,1) = c0
@@ -1976,14 +2162,34 @@ SUBROUTINE statevar_brutemod()
               trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.836
            END IF
 
-!!!!!!!!!!!!! Need to do something if there is ice from where there wasn't ice
-!before, this isn't necessary at the moment as PDAF stops new ice being created
-!above. Salinity must be greater than 0.1 if there is ice, Surface temp must be greater than -1.836
-!and Snow enthalpy must be smaller or equal to rhos*Lfresh. I've also limited uvel and vvel updates.
 
 	   IF (aicen(i+1,j+1,k,1) > c0) THEN
+
+!!! Check Salinities and surface temperatures are not out of bounds
+
 	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
 		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice+1,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice+2,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice+3,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice+4,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice+5,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh 
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_qice+6,k,1) >= -rhoi*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh 
 	      END IF
               IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -1.9) THEN
                  trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.9
@@ -2010,23 +2216,6 @@ SUBROUTINE statevar_brutemod()
 	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.11
 	      END IF
 	   END IF
-!	   IF (uvel(i+1,j+1,1) > c1) THEN
-!		 uvel(i+1,j+1,1) = c1
-!		 WRITE(*,*) "CORRECTING +UVEL","i:",i,"j:",j
-!	   END IF
-!	   IF (uvel(i+1,j+1,1) < -c1) THEN
-!		 uvel(i+1,j+1,1) = -c1
-!		 WRITE(*,*) "CORRECTING -UVEL","i:",i,"j:",j
-!	   END IF
-!	   IF (vvel(i+1,j+1,1) > c1) THEN
-!		 vvel(i+1,j+1,1) = c1
-!		 WRITE(*,*) "CORRECTING +VVEL","i:",i,"j:",j
-!	   END IF
-!	   IF (vvel(i+1,j+1,1) < -c1) THEN
-!		 vvel(i+1,j+1,1) = -c1
-!		 WRITE(*,*) "CORRECTING -VVEL","i:",i,"j:",j
-!	   END IF
-	
         END DO
      END DO
   END DO

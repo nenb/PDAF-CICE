@@ -20,8 +20,6 @@ SUBROUTINE read_config_pdaf()
        istate_dir
   USE obs_ice_concen_pdafomi, &
        ONLY: rms_ice_concen
-  USE obs_ice_thickness_pdafomi, &
-       ONLY: rms_ice_thickness
   USE output_netcdf_asml, &
        ONLY: file_asml
 
@@ -34,7 +32,7 @@ SUBROUTINE read_config_pdaf()
   NAMELIST /pdaf_nml/ istate_dir, filtertype, subtype, dim_ens,& 
        delt_obs, screen, type_forget, forget,&
        local_range, locweight, srange, rms_ice_concen,&
-       rms_ice_thickness, file_asml
+       file_asml
 
 ! ****************************************************
 ! ***   Initialize PDAF parameters from namelist   ***
@@ -63,7 +61,6 @@ SUBROUTINE read_config_pdaf()
     WRITE (*,'(5x,a,i10)')    'locweight    ', locweight
     WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
     WRITE (*,'(5x,a,es10.2)') 'rms_ice_concen    ', rms_ice_concen
-    WRITE (*,'(5x,a,es10.2)') 'rms_ice_thickness ', rms_ice_thickness
     WRITE (*,'(5x,a,a)')      'istate_dir   ', istate_dir
     WRITE (*,'(5x,a,a)')      'file_asml    ', file_asml
     WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'

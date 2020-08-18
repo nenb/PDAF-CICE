@@ -41,7 +41,7 @@
 !! * 2019-06 - Lars Nerger - Initial code
 !! * Later revisions - see repository log
 !!
-MODULE obs_ice_thickness_pdafomi
+MODULE obs_ice_hi_m_pdafomi
 
   USE mod_parallel_pdaf, &
        ONLY: mype_filter, abort_parallel    ! Rank of filter process
@@ -52,16 +52,19 @@ MODULE obs_ice_thickness_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_thickness=.FALSE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_hi_m=.TRUE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_thickness      !< Observation error standard deviation (for constant errors)
+  REAL    :: rms_ice_hi_m=0.4      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
   LOGICAL            :: obs_file=.FALSE. ! Are observations read from file or manually created
-  CHARACTER(len=200) :: file_ice_thickness= &
-       '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/restart/iced.2008-01-01-00000.nc'  ! netcdf file holding observations
+  CHARACTER(len=200) :: file_ice_hi_m = &
+  '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+  LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
+!choose correct years to assimilate
+  INTEGER :: year = 1980                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -159,7 +162,7 @@ CONTAINS
 !! can include modules from the model with 'use', e.g. for mesh information.
 !! Alternatively one could include these as subroutine arguments
 !!
-  SUBROUTINE init_dim_obs_f_ice_thickness(step, dim_obs_f)
+  SUBROUTINE init_dim_obs_f_ice_hi_m(step, dim_obs_f)
 
     USE PDAFomi_obs_f, &
          ONLY: PDAFomi_gather_obs_f
@@ -173,7 +176,9 @@ CONTAINS
     USE ice_constants, &
          ONLY: pi, puny
     USE mod_statevector, &
-         ONLY: aicen_offset, vicen_offset
+         ONLY: hi_m_offset
+    USE ice_calendar, &
+	 ONLY: mday, month, nyr, year_init, idate, monthp, daymo
 
     IMPLICIT NONE
 
@@ -187,26 +192,31 @@ CONTAINS
     INTEGER :: stat(20000)                 ! Status flag for NetCDF commands
     INTEGER :: ncid_in                     ! ID for NetCDF file
     INTEGER :: id_3dvar                    ! IDs for fields
-    INTEGER :: pos_nc(3),cnt_nc(3)         ! Vectors for reading 2D fields
+    INTEGER :: pos_nc(2),cnt_nc(2)         ! Vectors for reading 2D fields
     INTEGER :: dim_obs_p                   ! Number of process-local observations
     INTEGER :: status                      ! Status flag
-    REAL, ALLOCATABLE :: obs_field1(:,:,:)    ! Observation field read from file
-    REAL, ALLOCATABLE :: obs_field2(:,:,:)    ! Observation field read from file
-    REAL, ALLOCATABLE :: ice_thick_field(:,:) ! Combination of aicen and vicen
+    INTEGER :: mon			   ! month (mm)
+    INTEGER :: day  			   ! day (dd)
+    LOGICAL :: end_of_month = .FALSE.	   ! if we will assimilate
+    REAL, ALLOCATABLE :: obs_field1(:,:)    ! Observation field read from file
+    REAL, ALLOCATABLE :: ice_hi_m_field(:,:) ! Solely hi_m read in
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
     REAL, ALLOCATABLE :: ivar_obs_p(:)        ! PE-local inverse observation error variance
     REAL, ALLOCATABLE :: ocoord_p(:,:)        ! PE-local observation coordinates
-
+    CHARACTER(len=4) :: yeart			   ! year in strings
+    CHARACTER(len=2) :: montht			   ! month in strings
+    CHARACTER(len=2) :: dayt			   ! day in strings
+    CHARACTER(len=200) :: file_ice_directory = &
+    '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
 
 ! *********************************************
 ! *** Initialize full observation dimension ***
 ! *********************************************
 
     IF (mype_filter==0) &
-         WRITE (*,'(8x,a)') 'Assimilate observations - OBS_ice_thickness'
-
+         WRITE (*,'(8x,a)') 'Assimilate observations - OBS_ice_hi_m'
     ! Store whether to assimilate this observation type (used in routines below)
-    IF (assim_ice_thickness) thisobs%doassim = 1
+    IF (assim_ice_hi_m) thisobs%doassim = 1
 
     ! Specify type of distance computation
     !thisobs%disttype = 0   ! 0=Cartesian
@@ -215,11 +225,36 @@ CONTAINS
     ! Number of coordinates used for distance computation
     ! The distance compution starts from the first row
     thisobs%ncoord = 2
+    ! Array for hi_m
+    ALLOCATE(obs_field1(nx_global, ny_global))
+    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
+    !WRITE(*,*) "DEBUG YEAR: ", year
+    IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
+       day=mday-1
+       mon = month
+       end_of_month = .FALSE.
+    ELSE
+       mon=monthp
+       day=daymo(mon)
+       end_of_month = .TRUE.
+    END IF
+    IF (day == 1 .AND. mon == 1) THEN
+       IF (first_year .EQV. .FALSE.) THEN
+          year = year + 1
+       ELSE
+          first_year = .FALSE.
+       END IF
+    END IF
+    WRITE(yeart,'(i4.4)') year
+    WRITE(montht,'(i2.2)') mon
+    WRITE(dayt,'(i2.2)') day
+    !file_ice_hi_m='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+    !TEMP CODE TO ASSIM DAILY
+    WRITE(file_ice_hi_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht) &
+    //'-'//trim(dayt)//'.nc'
 
-    ! Arrays for aicen and vicen
-    ALLOCATE(obs_field1(nx_global, ny_global, ncat))
-    ALLOCATE(obs_field2(nx_global, ny_global, ncat))
-    
+    !WRITE(file_ice_hi_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht)//'.nc'
+    WRITE(*,*) 'FILE ICE HI_M: ', file_ice_hi_m
  !  ! We read in fields from a file
     IF (obs_file) THEN
        ! **********************************
@@ -229,16 +264,15 @@ CONTAINS
        ! Read observation values and their coordinates,
        ! also read observation error information if available
        
-       
        !1. First read fractional ice area 'aicen'
        s = 1
-       stat(s) = NF90_OPEN(trim(file_ice_thickness), NF90_NOWRITE, ncid_in)
+       stat(s) = NF90_OPEN(trim(file_ice_hi_m), NF90_NOWRITE, ncid_in)
 
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
                   'NetCDF error in opening file:', &
-                  trim(file_ice_thickness)
+                  trim(file_ice_hi_m)
              CALL abort_parallel()
           END IF
        END DO
@@ -248,21 +282,31 @@ CONTAINS
        ! ******************************************
 
        s=1
-       stat(s) = NF90_INQ_VARID(ncid_in, 'aicen', id_3dvar)
+       stat(s) = NF90_INQ_VARID(ncid_in, 'hi_d', id_3dvar)
 
        ! Read state variable data from file
-       pos_nc = (/ 1, 1, 1 /)
-       cnt_nc = (/ nx_global , ny_global, ncat /)
+       pos_nc = (/ 1, 1 /)
+       cnt_nc = (/ nx_global , ny_global /)
        s = s + 1
-       stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
+       !IF (end_of_month .EQV. .TRUE.) THEN
+          stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
+       !ELSE
+       !  DO i=1,nx_global
+!	     DO j=1,ny_global
+!		obs_field1(i,j)=-1
+!	     END DO
+!	  END DO
+       !END IF
 
+       IF (end_of_month .EQV. .TRUE.) THEN
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
-                  'NetCDF error in reading observations for aicen'
+                  'NetCDF error in reading observations for hi_m'
              CALL abort_parallel()
           END IF
        END DO
+       END IF
 
        ! *******************************************
        ! *** Close file containing initial state ***
@@ -275,86 +319,23 @@ CONTAINS
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
                   'NetCDF error in closing file:', &
-                  trim(file_ice_thickness)
+                  trim(file_ice_hi_m)
              CALL abort_parallel()
           END IF
        END DO
-
-
-       !2. Now read volume per unit ice area 'vicen'
-       s = 1
-       stat(s) = NF90_OPEN(trim(file_ice_thickness), NF90_NOWRITE, ncid_in)
-
-       DO i = 1, s
-          IF (stat(i) .NE. NF90_NOERR) THEN
-             WRITE(*,'(/9x, a, 3x, a)') &
-                  'NetCDF error in opening file:', &
-                  trim(file_ice_thickness)
-             CALL abort_parallel()
-          END IF
-       END DO
-
-       ! ******************************************
-       ! *** Read file containing initial state ***
-       ! ******************************************
-
-       s=1
-       stat(s) = NF90_INQ_VARID(ncid_in, 'vicen', id_3dvar)
-
-       ! Read state variable data from file
-       pos_nc = (/ 1, 1, 1 /)
-       cnt_nc = (/ nx_global , ny_global, ncat /)
-       s = s + 1
-       stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field2, start=pos_nc, count=cnt_nc)
-
-       DO i = 1, s
-          IF (stat(i) .NE. NF90_NOERR) THEN
-             WRITE(*,'(/9x, a, 3x, a)') &
-                  'NetCDF error in reading observations for vicen'
-             CALL abort_parallel()
-          END IF
-       END DO
-
-       ! *******************************************
-       ! *** Close file containing initial state ***
-       ! *******************************************
-
-       s = 1
-       stat(s) = NF90_CLOSE(ncid_in)
-
-       DO i = 1, s
-          IF (stat(i) .NE. NF90_NOERR) THEN
-             WRITE(*,'(/9x, a, 3x, a)') &
-                  'NetCDF error in closing file:', &
-                  trim(file_ice_thickness)
-             CALL abort_parallel()
-          END IF
-       END DO
-
-!   ! User manually specifies observation field.
+       
     ELSE
        ! obs_field1 is aicen
-       obs_field1=0.0
-       DO k = 1, ncat
-          DO j = 35,40!1, ny_global
-             DO i= 58,62!1, nx_global
-                obs_field1(i,j,k) = 0.2
-             END DO
+       DO j = 1, ny_global
+          DO i= 1, nx_global
+             obs_field1(i,j) = 0.0
+             IF (i==76 .AND. j==52) THEN
+                     obs_field1(i,j) = 10.0
+             END IF
           END DO
        END DO
-       ! obs_field2 is vicen
-       obs_field2=0.0
-       DO k = 1, ncat
-          DO j = 35,40!1, ny_global
-             DO i= 58,62!1, nx_global
-                IF (k == 1) THEN
-                   obs_field2(i,j,k) = 2.0!0.3
-                ELSE
-                   obs_field2(i,j,k) = 2.0!REAL(k) - 1.0
-                END IF
-             END DO
-          END DO
-       END DO
+
+
     END IF
 
 ! ***********************************************************
@@ -362,20 +343,12 @@ CONTAINS
 ! *** and initialize index and coordinate arrays.         ***
 ! ***********************************************************
 
-    ! Compute ice thickness observation field by combining aicen
-    ! and vicen fields and summing over categories.
-    ALLOCATE(ice_thick_field(nx_global,ny_global))
-    ice_thick_field=0.0
+    ! Compute ice hi_m observation field
+    ALLOCATE(ice_hi_m_field(nx_global,ny_global))
+
     DO j = 1, ny_global
        DO i= 1, nx_global
-          DO k = 1, ncat
-             ice_thick_field(i,j) = ice_thick_field(i,j) + &
-                  obs_field2(i,j,k) * obs_field1(i,j,k)
-          END DO
-          IF( SUM(obs_field1(i,j,:)) > puny ) THEN
-             ice_thick_field(i,j) = ice_thick_field(i,j) / &
-                  SUM(obs_field1(i,j,:))
-          END IF
+             ice_hi_m_field(i,j) = obs_field1(i,j)
        END DO
     END DO
 
@@ -383,11 +356,14 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_thick_field(i,j) > puny) cnt = cnt + 1
+          IF (ice_hi_m_field(i,j) >0 .AND. ice_hi_m_field(i,j) < 30) THEN
+             cnt = cnt + 1
+          END IF
        END DO
     END DO
     dim_obs_p = cnt
     dim_obs_f = cnt
+
 
     IF (mype_filter==0) &
          WRITE (*,'(8x, a, i6)') '--- number of full observations', dim_obs_f
@@ -430,29 +406,29 @@ CONTAINS
 
     ! Initialize with 10 rows = 2 variables * 5 categories.Observation operator then
     ! forms quotient of variables and sums over categories.
-    ALLOCATE(thisobs%id_obs_p(2*ncat, dim_obs_p))
+
+
+    ALLOCATE(thisobs%id_obs_p(1, dim_obs_p))
 
     cnt = 0
     cnt0 = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_thick_field(i,j) > puny) THEN
+          IF (ice_hi_m_field(i,j) >0 .AND. ice_hi_m_field(i,j) < 30) THEN
              cnt = cnt + 1
-             DO k = 1, ncat
-                ! Compute locations in state vector of (i,j,:) indices
-                thisobs%id_obs_p(k, cnt)  = aicen_offset + cnt0 + &
-                     ((k-1)*nx_global*ny_global)
-                thisobs%id_obs_p(k+ncat, cnt)  = vicen_offset + cnt0 + &
-                     ((k-1)*nx_global*ny_global)
-             END DO
-             obs_p(cnt) = ice_thick_field(i,j)
+             ! Compute locations in state vector of (i,j,:) indices
+             thisobs%id_obs_p(1, cnt)  = hi_m_offset + cnt0 + &
+                  nx_global*ny_global
+             obs_p(cnt) = ice_hi_m_field(i,j)
              ! Use (i+1, j+1) due to ghost cells
              ocoord_p(1, cnt) = tlon(i+1,j+1,1)
              ocoord_p(2, cnt) = tlat(i+1,j+1,1)
           END IF
        END DO
     END DO
+
+
 
 ! **********************************************************************
 ! *** Initialize interpolation coefficients for observation operator ***
@@ -490,7 +466,7 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
 
-    ivar_obs_p = 1.0/(rms_ice_thickness*rms_ice_thickness)
+    ivar_obs_p = 1.0/(rms_ice_hi_m*rms_ice_hi_m)
 
 ! ****************************************
 ! *** Gather global observation arrays ***
@@ -502,20 +478,19 @@ CONTAINS
     CALL PDAFomi_gather_obs_f(thisobs, dim_obs_p, obs_p, ivar_obs_p, ocoord_p, &
          thisobs%ncoord, local_range, dim_obs_f)
 
-
 ! ********************
 ! *** Finishing up ***
 ! ********************
 
     ! Deallocate all local arrays
-    DEALLOCATE(obs_field1, obs_field2)
-    DEALLOCATE(ice_thick_field)
     DEALLOCATE(obs_p, ocoord_p, ivar_obs_p)
+    DEALLOCATE(ice_hi_m_field)
+    DEALLOCATE(obs_field1)  
 
     ! Arrays in THISOBS have to be deallocated after the analysis step
     ! by a call to deallocate_obs() in prepoststep_pdaf.
 
-  END SUBROUTINE init_dim_obs_f_ice_thickness
+  END SUBROUTINE init_dim_obs_f_ice_hi_m
 
 
 
@@ -546,12 +521,12 @@ CONTAINS
 !!
 !! The routine is called by all filter processes.
 !!
-  SUBROUTINE obs_op_f_ice_thickness(dim_p, dim_obs_f, state_p, ostate_f, offset_obs)
+  SUBROUTINE obs_op_f_ice_hi_m(dim_p, dim_obs_f, state_p, ostate_f, offset_obs)
 
     !USE PDAFomi, &
     !     ONLY: PDAFomi_obs_op_f_gridpoint
     USE PDAFomi_obs_op_extra, &
-         ONLY: PDAFomi_obs_op_f_ice_thickness
+         ONLY: PDAFomi_obs_op_f_ice_hi_m
     USE ice_domain_size, &
          ONLY: ncat
 
@@ -579,13 +554,13 @@ CONTAINS
        !CALL PDAFomi_obs_op_f_gridpoint(thisobs, state_p, ostate_f, offset_obs)
 
        ! observation operator for observed grid point values
-       CALL PDAFomi_obs_op_f_ice_thickness(thisobs, ncat, state_p, ostate_f, offset_obs)
+       CALL PDAFomi_obs_op_f_ice_hi_m(thisobs, ncat, state_p, ostate_f, offset_obs)
 
     END IF
 
-  END SUBROUTINE obs_op_f_ice_thickness
+  END SUBROUTINE obs_op_f_ice_hi_m
 
-  !-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
 !> Initialize local information on the module-type observation
 !!
 !! The routine is called during the loop over all local
@@ -601,7 +576,7 @@ CONTAINS
 !! different localization radius and localization functions
 !! for each observation type and  local analysis domain.
 !!
-  SUBROUTINE init_dim_obs_l_ice_thickness(domain_p, step, dim_obs_f, dim_obs_l, &
+  SUBROUTINE init_dim_obs_l_ice_hi_m(domain_p, step, dim_obs_f, dim_obs_l, &
        off_obs_l, off_obs_f)
 
     ! Include PDAFomi function
@@ -630,7 +605,7 @@ CONTAINS
          locweight, local_range, srange, &
          dim_obs_l, off_obs_l, off_obs_f)
 
-  END SUBROUTINE init_dim_obs_l_ice_thickness
+  END SUBROUTINE init_dim_obs_l_ice_hi_m
   
   SUBROUTINE add_noise(dim_state, x)
 
@@ -662,7 +637,7 @@ CONTAINS
 
     ! Seeds taken from PDAF Lorenz96 routine
     IF (firststep==1) THEN
-       WRITE (*,'(9x, a)') '--- Initialize seed for ice thickness noise'
+       WRITE (*,'(9x, a)') '--- Initialize seed for ice hi_m noise'
        iseed(1)=2*220+1
        iseed(2)=2*100+5
        iseed(3)=2*10+7
@@ -681,4 +656,4 @@ CONTAINS
 
   END SUBROUTINE add_noise
 
-END MODULE obs_ice_thickness_pdafomi
+END MODULE obs_ice_hi_m_pdafomi

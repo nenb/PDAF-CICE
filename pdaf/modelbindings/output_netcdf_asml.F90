@@ -37,20 +37,20 @@ MODULE output_netcdf_asml
   INTEGER, PRIVATE :: cnt_steps  ! Count time step for delt_write_asml
 
 ! Array of 2d/3d state variables that are to be output to file
-  CHARACTER(len=20), DIMENSION(3) :: output_2dvar
-  CHARACTER(len=20), DIMENSION(7) :: output_3dvar
+  CHARACTER(len=20), DIMENSION(1) :: output_2dvar
+  CHARACTER(len=20), DIMENSION(3) :: output_3dvar
 
-  DATA output_2dvar / 'uvel', 'vvel', 'sst' /
-  DATA output_3dvar / 'aicen', 'vicen', 'vsnon', 'Tsfcn', 'sice001', 'qice001', 'qsno001' /
+  DATA output_2dvar / 'hi_m' /
+  DATA output_3dvar / 'aicen', 'vicen', 'hin' /
 
 ! Array of 2d/3d state variable offsets (actually *indices* for var2d_offset and
 ! var3d_offset) that are to be output to file.
-  INTEGER, DIMENSION(3) :: index2d_offset
-  INTEGER, DIMENSION(7) :: index3d_offset
+  INTEGER, DIMENSION(1) :: index2d_offset
+  INTEGER, DIMENSION(3) :: index3d_offset
 
 ! These values can be found in mod_statevector (search for var2d_offset/var3d_offset).
-  DATA index2d_offset / 1, 2, 15 /
-  DATA index3d_offset / 1, 2, 3, 4, 12, 13, 26 /
+  DATA index2d_offset / 16 /
+  DATA index3d_offset / 1, 2, 27 /
 
 CONTAINS
 !BOP

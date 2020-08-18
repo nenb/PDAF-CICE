@@ -109,6 +109,7 @@
       character (len=32) :: str
 #ifdef USE_PDAF
       character (len=3) :: ensstr
+      character (len=3) :: task_str
 #endif
 
       logical :: exists
@@ -646,6 +647,10 @@
       endif
 
 #ifdef USE_PDAF
+      !WRITE(task_str,'(i0)') task_id
+      !WRITE(*,*) task_str
+      !WRITE(atm_data_dir,'(a)') trim(atm_data_dir)//'ens_forcing_'//trim(task_str)//'/'
+      !WRITE(*,*) atm_data_dir
       ! Overwrite CICE namelist and give each member different year
       year_init = year_init + task_id
       fyear_init = fyear_init + task_id
