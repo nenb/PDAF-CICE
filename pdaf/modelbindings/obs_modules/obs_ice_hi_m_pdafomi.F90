@@ -523,10 +523,8 @@ CONTAINS
 !!
   SUBROUTINE obs_op_f_ice_hi_m(dim_p, dim_obs_f, state_p, ostate_f, offset_obs)
 
-    !USE PDAFomi, &
-    !     ONLY: PDAFomi_obs_op_f_gridpoint
-    USE PDAFomi_obs_op_extra, &
-         ONLY: PDAFomi_obs_op_f_ice_hi_m
+    USE PDAFomi, &
+         ONLY: PDAFomi_obs_op_f_gridpoint
     USE ice_domain_size, &
          ONLY: ncat
 
@@ -551,10 +549,7 @@ CONTAINS
        !+++  module PDAFomi_obs_op or implement your own
 
        ! observation operator for observed grid point values
-       !CALL PDAFomi_obs_op_f_gridpoint(thisobs, state_p, ostate_f, offset_obs)
-
-       ! observation operator for observed grid point values
-       CALL PDAFomi_obs_op_f_ice_hi_m(thisobs, ncat, state_p, ostate_f, offset_obs)
+       CALL PDAFomi_obs_op_f_gridpoint(thisobs, state_p, ostate_f, offset_obs)
 
     END IF
 

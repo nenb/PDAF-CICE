@@ -224,8 +224,10 @@ CONTAINS
     ! Number of coordinates used for distance computation
     ! The distance compution starts from the first row
     thisobs%ncoord = 2
+
     ! Arrays for aicen and vicen
     ALLOCATE(obs_field1(nx_global, ny_global, ncat))
+
     !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
     IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
        day=mday-1
@@ -350,7 +352,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_concen_field(i,j) >=0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
+          IF (ice_concen_field(i,j) >=0.0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
              cnt = cnt + 1
           END IF
        END DO
@@ -407,7 +409,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_concen_field(i,j) >=0 .AND. ice_concen_field(i,j) <=1.0) THEN
+          IF (ice_concen_field(i,j) >=0.0 .AND. ice_concen_field(i,j) <=1.0) THEN
              cnt = cnt + 1
              DO k = 1, ncat
                 ! Compute locations in state vector of (i,j,:) indices
