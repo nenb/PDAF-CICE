@@ -47,7 +47,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
     USE output_netcdf_asml, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml
   USE mod_statevector, &
-       ONLY: calc_hi_average
+       ONLY: calc_hi_average, statevar_brutemod
   USE ice_blocks, &
        ONLY: nx_block, ny_block
   USE ice_calendar, &
@@ -127,12 +127,16 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 ! *** Adjustments after distribute state ***
 ! ******************************************
 
-  ! Update aggregate quantities from CICE
   IF( (step > 0) .OR. (firsttime)) THEN
-     !-----------------------------------------------------------------
-     ! aggregate tracers
-     !-----------------------------------------------------------------
+
+     ! Brute force modications to state variables
+     CALL statevar_brutemod()
+
+     ! Update aggregate quantities from CICE
      DO iblk = 1, nblocks
+        !-------------------------------------------------------------
+        ! aggregate tracers
+        !-------------------------------------------------------------
         CALL aggregate (nx_block, ny_block, &
              aicen(:,:,:,iblk),  &
              trcrn(:,:,:,:,iblk),&
