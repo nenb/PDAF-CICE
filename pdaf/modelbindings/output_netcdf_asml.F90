@@ -26,7 +26,6 @@ MODULE output_netcdf_asml
   CHARACTER(len=100) :: file_asml            ! Name of output file; set via namelist.pdaf
   INTEGER :: delt_write_asml = 1             ! Output interval in assimilation intervals
   LOGICAL :: write_states    = .TRUE.        ! Whether to write estimated states
-  LOGICAL :: write_stats     = .FALSE.       ! Whether to write ensemble statistics
   LOGICAL :: write_ens       = .TRUE.        ! Whether to write full ensemble
 
 !EOP
@@ -60,7 +59,7 @@ CONTAINS
 ! !INTERFACE:
   SUBROUTINE init_netcdf_asml(step, dt, dimx, dimy, dimcat, &
        filtertype, subtype, dim_ens, forget, local_range, &
-       locweight, srange, rms_obs, delt_obs, total_steps, dim_lag)
+       locweight, srange, rms_obs, delt_obs, total_steps)
 
 ! !DESCRIPTION:
 ! This routine initializes the netcdf file
@@ -87,8 +86,6 @@ CONTAINS
                                         !   and range for 1/e for exponential weighting
     INTEGER, INTENT(IN) :: delt_obs     ! Number of time steps between two analysis steps
     INTEGER, INTENT(IN) :: total_steps  ! Total number of time steps in experiment
-    INTEGER, INTENT(IN) :: dim_lag    ! Lag for smoothing
-!EOP
 
 ! Local variables
     INTEGER :: i, s, idx              ! Counters
@@ -97,7 +94,6 @@ CONTAINS
     INTEGER :: dimid_cat              ! Dimension IDs
     INTEGER :: dimid_step             ! Dimension ID
     INTEGER :: dimid_ens, dimid_ensp1 ! Dimension IDs
-    INTEGER :: dimid_lag              ! Dimension ID
     INTEGER :: id_tmp                 ! Variable IDs
     INTEGER :: stat(250)              ! Array for status flag
     INTEGER :: dimarray(2)            ! Array for dimensions
@@ -110,7 +106,6 @@ CONTAINS
     WRITE (*,'(5x,a,i6)') 'Writing interval (steps) ', delt_write_asml
     IF (write_states) WRITE (*,'(5x,a)') '--> Write model states'
     IF (write_ens) WRITE (*,'(5x,a)') '--> Write ensemble states'
-    IF (write_stats) WRITE (*,'(5x,a)') '--> Write higher-order ensemble statistics'
 
 ! Initialize file position
     file_pos = 1
@@ -145,10 +140,6 @@ CONTAINS
     s = s + 1
     stat(s) = NF90_DEF_DIM(fileid, 'dim_ensp1', dim_ens+1, dimid_ensp1)
     s = s + 1
-    dimlag_switch: IF (dim_lag > 0) THEN
-       stat(s) = NF90_DEF_DIM(fileid, 'dim_lag', dim_lag, dimid_lag)
-       s = s + 1
-    END IF dimlag_switch
 
 ! Define variables characterizing the experiment
     stat(s) = NF90_DEF_VAR(fileid, 'filtertype', NF90_INT, DimId_1, Id_tmp)
@@ -174,35 +165,6 @@ CONTAINS
     stat(s) = NF90_DEF_VAR(fileid, 'delt_obs', NF90_INT, DimId_1, Id_tmp)
     s = s + 1
 
-! Define variables
-    stat(s) = NF90_DEF_VAR(fileid, 'mrmse_for_null', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mrmse_ana_null', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mtrmse_for_null', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mtrmse_ana_null', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mrmse_for_step', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mrmse_ana_step', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mtrmse_for_step', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'mtrmse_ana_step', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-
-    smootherA: IF (dim_lag > 0) THEN
-       stat(s) = NF90_DEF_VAR(fileid, 'mrmse_smoother_null', NF90_DOUBLE, DimId_lag, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'mtrmse_smoother_null', NF90_DOUBLE, DimId_lag, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'mrmse_smoother_step', NF90_DOUBLE, DimId_lag, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'mtrmse_smoother_step', NF90_DOUBLE, DimId_lag, Id_tmp)
-       s = s + 1
-    END IF smootherA
-
     stat(s) = NF90_DEF_VAR(fileid, 'step', NF90_INT, DimId_step, Id_tmp)
     s = s + 1
     stat(s) = NF90_DEF_VAR(fileid, 'step_ini', NF90_INT, DimId_1, Id_tmp)
@@ -211,51 +173,6 @@ CONTAINS
     s = s + 1
     stat(s) = NF90_DEF_VAR(fileid, 'time_ini', NF90_DOUBLE, DimId_1, Id_tmp)
     s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'rmse_ini', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'rmse_for', NF90_DOUBLE, DimId_step, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'rmse_ana', NF90_DOUBLE, DimId_step, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'trmse_ini', NF90_DOUBLE, DimId_1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'trmse_for', NF90_DOUBLE, DimId_step, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'trmse_ana', NF90_DOUBLE, DimId_step, Id_tmp)
-    s = s + 1
-
-    smootherB: IF (dim_lag > 0) THEN
-       dimarray(1) = dimid_lag
-       dimarray(2) = dimid_step
-       stat(s) = NF90_DEF_VAR(fileid, 'rmse_smoother', NF90_DOUBLE, dimarray, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'trmse_smoother', NF90_DOUBLE, dimarray, Id_tmp)
-       s = s + 1
-    END IF smootherB
-
-    stat(s) = NF90_DEF_VAR(fileid, 'hist_true_null', NF90_INT, Dimid_ensp1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'hist_mean_null', NF90_INT, Dimid_ensp1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'hist_true_step', NF90_INT, Dimid_ensp1, Id_tmp)
-    s = s + 1
-    stat(s) = NF90_DEF_VAR(fileid, 'hist_mean_step', NF90_INT, Dimid_ensp1, Id_tmp)
-    s = s + 1
-
-    writestats: IF (write_stats) THEN
-       stat(s) = NF90_DEF_VAR(fileid, 'skewness_ini', NF90_DOUBLE, DimId_1, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'kurtosis_ini', NF90_DOUBLE, DimId_1, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'skewness_for', NF90_DOUBLE, DimId_step, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'kurtosis_for', NF90_DOUBLE, DimId_step, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'skewness_ana', NF90_DOUBLE, DimId_step, Id_tmp)
-       s = s + 1
-       stat(s) = NF90_DEF_VAR(fileid, 'kurtosis_ana', NF90_DOUBLE, DimId_step, Id_tmp)
-       s = s + 1
-    END IF writestats
 
     writestates: IF (write_states) THEN
 
@@ -621,10 +538,7 @@ CONTAINS
 !
 ! !INTERFACE:
   SUBROUTINE write_netcdf_asml(calltype, step, time, dim, dimx, dimy, &
-       dimcat, state, rmse, trmse, mrmse_null, mtrmse_null, mrmse_step, &
-       mtrmse_step, dim_ens, ens, hist_true, hist_mean, skewness, kurtosis, &
-       dim_lag, rmse_s, trmse_s, mrmse_s_null, mtrmse_s_null, mrmse_s_step, &
-       mtrmse_s_step)
+       dimcat, state, dim_ens, ens)
 
 ! !DESCRIPTION:
 ! This routine writes the netcdf file.
@@ -645,43 +559,15 @@ CONTAINS
     INTEGER, INTENT(IN) :: dimy       ! Dimension: latitude
     INTEGER, INTENT(IN) :: dimcat     ! Dimension: categories
     REAL, INTENT(IN)    :: state(dim)  ! Model state
-    REAL, INTENT(IN)    :: rmse        ! Estimated RMS error
-    REAL, INTENT(IN)    :: trmse       ! True RMS error
-    REAL, INTENT(IN)    :: mrmse_null  ! Time-mean estimated RMS error from step 0
-    REAL, INTENT(IN)    :: mtrmse_null ! Time-mean true RMS error from step 0
-    REAL, INTENT(IN)    :: mrmse_step  ! Time-mean estimated RMS error from stepnull_means
-    REAL, INTENT(IN)    :: mtrmse_step ! Time-mean true RMS error from stepnull_means
     INTEGER, INTENT(IN) :: dim_ens     ! Ensemble size
     REAL, INTENT(IN)    :: ens(dim, dim_ens)       ! Ensemble
-    INTEGER, INTENT(IN) :: hist_true(dim_ens+1, 2) ! Rank histogram about true state
-    INTEGER, INTENT(IN) :: hist_mean(dim_ens+1, 2) ! Rank histogram about ensemble mean
-    REAL, INTENT(IN)    :: skewness                ! Skewness of ensemble
-    REAL, INTENT(IN)    :: kurtosis                ! Kurtosis of ensemble
-    ! RMS errors for smoother
-    INTEGER, INTENT(IN) :: dim_lag             ! Size of lag for smoothing
-    REAL, INTENT(IN) :: rmse_s(dim_lag)        ! Estimated RMS error
-    REAL, INTENT(IN) :: trmse_s(dim_lag)       ! True RMS error
-    REAL, INTENT(IN) :: mrmse_s_null(dim_lag)  ! Time-mean estimated RMS error from step 0
-    REAL, INTENT(IN) :: mtrmse_s_null(dim_lag) ! Time-mean true RMS error from step 0
-    REAL, INTENT(IN) :: mrmse_s_step(dim_lag)  ! Time-mean estimated RMS error from stepnull_means
-    REAL, INTENT(IN) :: mtrmse_s_step(dim_lag) ! Time-mean true RMS error from stepnull_means
 !EOP
 
 ! Local variables
     INTEGER :: i, s, idx, idx_off      ! Counters
     INTEGER :: ID_time, ID_step        ! Variable IDs
-    INTEGER :: ID_rmse, ID_trmse       ! Variable IDs
-    INTEGER :: ID_mrmseN, ID_mtrmseN   ! Variable IDs
-    INTEGER :: ID_mrmseS, ID_mtrmseS   ! Variable IDs
-    INTEGER :: ID_hist_true_null, ID_hist_mean_null ! Variable IDs
-    INTEGER :: ID_hist_true_step, ID_hist_mean_step ! Variable IDs
-    INTEGER :: ID_skew, ID_kurt        ! Variable IDs
-    INTEGER :: Id_rmse_s, Id_trmse_s, Id_mrmseN_s      ! Variable IDs for smoother output
-    INTEGER :: Id_mtrmseN_s, Id_mrmseS_s, Id_mtrmseS_s ! Variable IDs for smoother output
     INTEGER :: stat(250)               ! Array for status flag
     INTEGER :: pos(1)                  ! Position index for writing
-    INTEGER :: pos2(2)                 ! Position index for writing
-    INTEGER :: cnt2(2)                 ! Count index for writing
     LOGICAL :: dowrite                 ! Flag whether to write at the current call
     INTEGER, ALLOCATABLE :: id_2dstate(:)   ! Array of 2D variable IDs
     INTEGER, ALLOCATABLE :: id_3dstate(:)   ! Array of 3D variable IDs
@@ -769,24 +655,6 @@ CONTAINS
        s = s + 1
        stat(s) = NF90_INQ_VARID(fileid, "step_ini", Id_step)
        s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "rmse_ini", Id_rmse)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "trmse_ini", Id_trmse)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_ana_null", Id_mrmseN)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_ana_null", Id_mtrmseN)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_ana_step", Id_mrmseS)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_ana_step", Id_mtrmseS)
-       s = s + 1
-       writestats: IF (write_stats) THEN
-          stat(s) = NF90_INQ_VARID(fileid, "skewness_ini", Id_skew)
-          s = s + 1
-          stat(s) = NF90_INQ_VARID(fileid, "kurtosis_ini", Id_kurt)
-          s = s + 1
-       END IF writestats
 
     ELSE IF (calltype == 'for') THEN
        IF (write_states) THEN
@@ -838,24 +706,6 @@ CONTAINS
        s = s + 1
        stat(s) = NF90_INQ_VARID(fileid, "step", Id_step)
        s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "rmse_for", Id_rmse)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "trmse_for", Id_trmse)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_for_null", Id_mrmseN)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_for_null", Id_mtrmseN)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_for_step", Id_mrmseS)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_for_step", Id_mtrmseS)
-       s = s + 1
-       writestatsB: IF (write_stats) THEN
-          stat(s) = NF90_INQ_VARID(fileid, "skewness_for", Id_skew)
-          s = s + 1
-          stat(s) = NF90_INQ_VARID(fileid, "kurtosis_for", Id_kurt)
-          s = s + 1
-       END IF writestatsB
 
     ELSE
 
@@ -905,61 +755,12 @@ CONTAINS
        s = s + 1
        stat(s) = NF90_INQ_VARID(fileid, "step", Id_step)
        s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "rmse_ana", Id_rmse)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "trmse_ana", Id_trmse)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_ana_null", Id_mrmseN)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_ana_null", Id_mtrmseN)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_ana_step", Id_mrmseS)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_ana_step", Id_mtrmseS)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "hist_true_null", Id_hist_true_null)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "hist_mean_null", Id_hist_mean_null)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "hist_true_step", Id_hist_true_step)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "hist_mean_step", Id_hist_mean_step)
-       s = s + 1
-       writestatsC: IF (write_stats) THEN
-          stat(s) = NF90_INQ_VARID(fileid, "skewness_ana", Id_skew)
-          s = s + 1
-          stat(s) = NF90_INQ_VARID(fileid, "kurtosis_ana", Id_kurt)
-          s = s + 1
-       END IF writestatsC
 
     END IF
 
     DO i = 1,  s - 1
        IF (stat(i) /= NF90_NOERR) THEN
           WRITE(*, *) 'NetCDF error in preparing output, no.', i
-          CALL abort_parallel()
-       END IF
-    END DO
-    s = 1
-
-    smootherA: IF (dim_lag > 0 .AND. calltype=='ana') THEN
-       stat(s) = NF90_INQ_VARID(fileid, "rmse_smoother", Id_rmse_s)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "trmse_smoother", Id_trmse_s)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_smoother_null", Id_mrmseN_s)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_smoother_null", Id_mtrmseN_s)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mrmse_smoother_step", Id_mrmseS_s)
-       s = s + 1
-       stat(s) = NF90_INQ_VARID(fileid, "mtrmse_smoother_step", Id_mtrmseS_s)
-       s = s + 1
-    END IF smootherA
-
-    DO i = 1,  s - 1
-       IF (stat(i) /= NF90_NOERR) THEN
-          WRITE(*, *) 'NetCDF error in preparing smoother output, no.', i
           CALL abort_parallel()
        END IF
     END DO
@@ -981,6 +782,13 @@ CONTAINS
        stat(s) = NF90_PUT_VAR(fileid, Id_step, -step, pos)
        s = s + 1
     END IF
+
+    DO i = 1,  s - 1
+       IF (stat(i) /= NF90_NOERR) THEN
+          WRITE(*, *) 'NetCDF error in writing output, no.', i
+          CALL abort_parallel()
+       END IF
+    END DO
 
     ! Write state information and RMS errors only at specified intervals
     ! and at initialization
@@ -1017,77 +825,7 @@ CONTAINS
           END DO
        END IF
 
-       pos(1) = file_pos
-       stat(s) = NF90_PUT_VAR(fileid, Id_rmse, rmse, pos)
-       s = s + 1
-
-       pos(1) = file_pos
-       stat(s) = NF90_PUT_VAR(fileid, Id_trmse, trmse, pos)
-       s = s + 1
-
-       ! Write RMS errors from smoothing
-       smootherB: IF (dim_lag > 0 .AND. calltype=='ana') THEN
-          pos2(1) = 1
-          pos2(2) = file_pos
-          cnt2(1) = dim_lag
-          cnt2(2) = 1
-          stat(s) = NF90_PUT_VAR(fileid, Id_rmse_s, rmse_s, pos2, cnt2)
-          s = s + 1
-          stat(s) = NF90_PUT_VAR(fileid, Id_trmse_s, trmse_s, pos2, cnt2)
-          s = s + 1
-       END IF smootherB
-
-       IF (write_stats) THEN
-          ! Ensemble statistics
-          pos(1) = file_pos
-          stat(s) = NF90_PUT_VAR(fileid, Id_skew, skewness, pos)
-          s = s + 1
-          stat(s) = NF90_PUT_VAR(fileid, Id_kurt, kurtosis, pos)
-          s = s + 1
-       END IF
-
     END IF writetimedep
-
-    IF (calltype=='ana') THEN
-       ! Histogram information - written at each time
-       stat(s) = NF90_PUT_VAR(fileid, Id_hist_true_null, hist_true(:, 1))
-       s = s + 1
-       stat(s) = NF90_PUT_VAR(fileid, Id_hist_mean_null, hist_mean(:, 1))
-       s = s + 1
-       stat(s) = NF90_PUT_VAR(fileid, Id_hist_true_step, hist_true(:, 2))
-       s = s + 1
-       stat(s) = NF90_PUT_VAR(fileid, Id_hist_mean_step, hist_mean(:, 2))
-       s = s + 1
-    END IF
-
-    ! Mean errors are written at each time
-    stat(s) = NF90_PUT_VAR(fileid, Id_mrmseN, mrmse_null)
-    s = s + 1
-    stat(s) = NF90_PUT_VAR(fileid, Id_mtrmseN, mtrmse_null)
-    s = s + 1
-    stat(s) = NF90_PUT_VAR(fileid, Id_mrmseS, mrmse_step)
-    s = s + 1
-    stat(s) = NF90_PUT_VAR(fileid, Id_mtrmseS, mtrmse_step)
-    s = s + 1
-
-    ! Write mean smoother errors at each time
-    smootherC: IF (dim_lag > 0 .AND. calltype=='ana') THEN
-       stat(s) = NF90_PUT_VAR(fileid, Id_mrmseN_s, mrmse_s_null)
-       s = s + 1
-       stat(s) = NF90_PUT_VAR(fileid, Id_mtrmseN_s, mtrmse_s_null)
-       s = s + 1
-       stat(s) = NF90_PUT_VAR(fileid, Id_mrmseS_s, mrmse_s_step)
-       s = s + 1
-       stat(s) = NF90_PUT_VAR(fileid, Id_mtrmseS_s, mtrmse_s_step)
-       s = s + 1
-    END IF smootherC
-
-    DO i = 1,  s - 1
-       IF (stat(i) /= NF90_NOERR) THEN
-          WRITE(*, *) 'NetCDF error in writing output, no.', i
-          CALL abort_parallel()
-       END IF
-    END DO
 
     ! Increment file position counter
     IF (dowrite .AND. calltype == 'ana') THEN

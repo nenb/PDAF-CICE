@@ -41,13 +41,13 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 ! !USES:
   USE mod_assimilation, &
        ONLY: screen, filtertype, subtype, forget, local_range, &
-       locweight, srange, rms_obs, delt_obs, dim_lag
+       locweight, srange, rms_obs, delt_obs
   USE mod_parallel_pdaf, &
-       ONLY: mype_world, mype_filter
+       ONLY: mype_filter
     USE output_netcdf_asml, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml
   USE mod_statevector, &
-       ONLY: uvel_offset
+       ONLY: calc_hi_average
   USE ice_blocks, &
        ONLY: nx_block, ny_block
   USE ice_calendar, &
@@ -87,37 +87,8 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   INTEGER :: iblk                     ! Counter
   LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
   REAL :: invdim_ens                   ! Inverse ensemble size
-  REAL :: invdim_ensm1                 ! Inverse of ensemble size minus 1
-  REAL :: rmse_est                     ! estimated RMS error
-  REAL :: rmse_true                    ! true RMS error
-  CHARACTER(len=2) :: ensstr          ! String for ensemble member
   CHARACTER(len=2) :: stepstr         ! String for time step
   CHARACTER(len=3) :: anastr          ! String for call type (initial, forecast, analysis)
-  REAL, ALLOCATABLE :: variance_p(:)  ! local variance
-  REAL, ALLOCATABLE :: ens_p_tmp(:,:) ! Temporary ensemble for some PE-domain
-  INTEGER, SAVE, ALLOCATABLE :: hist_true(:,:) ! Array for rank histogram about true state
-  INTEGER, SAVE, ALLOCATABLE :: hist_mean(:,:) ! Array for rank histogram about ensemble mean
-  ! Variables for mean errors from step 0
-  REAL, SAVE :: sum_rmse_est_null(2) = 0.0  ! RMS error estimate accumulated over time
-  REAL, SAVE :: sum_rmse_true_null(2) = 0.0 ! True RMS error accumulated over time
-  INTEGER, SAVE :: nsum_null(2) = 0         ! Length of sums over time
-  REAL :: mrmse_est_null = 0.0              ! Time-mean of estimated RMS error
-  REAL :: mrmse_true_null = 0.0             ! Time-mean of true RMS error
-  ! Variables for sum from step stepnull_means
-  REAL, SAVE :: sum_rmse_est_step(2) = 0.0  ! RMS error estimate accumulated over time
-  REAL, SAVE :: sum_rmse_true_step(2) = 0.0 ! True RMS error accumulated over time
-  INTEGER, SAVE :: nsum_step(2) = 0         ! Length of sums over time
-  REAL :: mrmse_est_step = 0.0              ! Time-mean of estimated RMS error
-  REAL :: mrmse_true_step = 0.0             ! Time-mean of true RMS error
-  REAL :: skewness                          ! Skewness of ensemble
-  REAL :: kurtosis                          ! Kurtosis of ensemble
-  ! Variables for smoother erros
-  REAL, Allocatable :: rmse_s(:)        ! estimated RMS error of smoothed states
-  REAL, ALLOCATABLE :: trmse_s(:)       ! true RMS error of smoothed states
-  REAL, ALLOCATABLE :: mrmse_s_null(:)  ! Time-mean of estimated smoother RMS error
-  REAL, ALLOCATABLE :: mtrmse_s_null(:) ! Time-mean of true smoother RMS error
-  REAL, ALLOCATABLE :: mrmse_s_step(:)  ! Time-mean of estimated smootherRMS error
-  REAL, ALLOCATABLE :: mtrmse_s_step(:) ! Time-mean of true smoother RMS error
 
 
 ! **********************
@@ -130,7 +101,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         anastr = 'ini'
         CALL init_netcdf_asml(idate0, dt, nx_global, ny_global, ncat, &
              filtertype, subtype, dim_ens, forget, local_range, locweight, &
-             srange, rms_obs, delt_obs, npt, dim_lag)
+             srange, rms_obs, delt_obs, npt)
         CALL close_netcdf_asml()
      ELSE
         IF (step<0) THEN
@@ -141,6 +112,15 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            anastr = 'ana'
         END IF
      END IF
+  END IF
+
+! *****************************************
+! *** Calculations before collect state ***
+! *****************************************
+
+  IF (step < 0) THEN
+     ! Compute monthly-mean ice thickness for CICE
+     CALL calc_hi_average()
   END IF
 
 ! ******************************************
@@ -173,13 +153,8 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 ! *** Begin statistical calculations ***
 ! **************************************
 
-  ! Allocate fields
-  ALLOCATE(variance_p(dim_p))
-
   ! Initialize numbers
-  rmse_est  = 0.0
-  invdim_ens    = 1.0 / REAL(dim_ens)  
-  invdim_ensm1  = 1.0 / REAL(dim_ens - 1)
+  invdim_ens    = 1.0 / REAL(dim_ens)
 
   ! *** Compute mean state
   IF (mype_filter == 0) WRITE (*, '(8x, a)') '--- compute ensemble mean'
@@ -192,55 +167,21 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   END DO
   state_p(:) = invdim_ens * state_p(:)
 
-  ! *** Compute sampled variances ***
-  variance_p(:) = 0.0
-  DO member = 1, dim_ens
-     DO j = 1, dim_p
-        variance_p(j) = variance_p(j) &
-             + (ens_p(j, member) - state_p(j)) &
-             * (ens_p(j, member) - state_p(j))
-     END DO
-  END DO
-  variance_p(:) = invdim_ensm1 * variance_p(:)
-
 ! ************************************************************
 ! *** Compute RMS errors according to sampled covar matrix ***
 ! ************************************************************
 
-  !
-  ! TO BE REWRITTEN FOR EACH INDIVIDUAL STATE VARIABLE
-  !
-
-!  ! total estimated RMS error
-!  DO i = 1, dim_p_uvel
-!     rmserror_est = rmserror_est + variance(i)
-!  ENDDO
-
-!  rmserror_est = SQRT(rmserror_est / dim_state)
-
-  ! DUMMY STATISTICS FOR NOW
-  ALLOCATE(hist_true(dim_ens+1,2))
-  ALLOCATE(hist_mean(dim_ens+1,2))
-  hist_true=0.0
-  hist_mean=0.0
-
-  DEALLOCATE(variance_p)
+  ! *****
+  ! Empty
+  ! *****
 
 ! *****************
 ! *** Screen IO ***
 ! *****************
 
-  ! Output RMS errors given by sampled covar matrix
-  IF (mype_filter == 0) THEN
-
-     !
-     ! TO BE REWRITTEN FOR EACH INDIVIDUAL STATE VARIABLE
-     !
-     
-!     WRITE (*, '(12x, a, es12.4)') &
-!          'RMS error according to sampled variance: ', rmserror_est
-
-  END IF
+  ! *****
+  ! Empty
+  ! *****
 
 ! *******************
 ! *** File output ***
@@ -257,19 +198,13 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   END IF
 
   CALL write_netcdf_asml(anastr, step, time, dim_p, nx_global, ny_global,&
-       ncat, state_p, rmse_est, rmse_true, mrmse_est_null, mrmse_true_null,&
-       mrmse_est_step, mrmse_true_step, dim_ens, ens_p, hist_true, &
-       hist_mean, skewness, kurtosis, dim_lag, rmse_s, trmse_s, mrmse_s_null,&
-       mtrmse_s_null, mrmse_s_step, mtrmse_s_step)
+       ncat, state_p, dim_ens, ens_p)
 
   CALL close_netcdf_asml()
 
 ! ********************
 ! *** Finishing up ***
 ! ********************
-
-  ! Tidy up statistics
-  DEALLOCATE(hist_true, hist_mean)
 
   ! Deallocate observation arrays
   CALL deallocate_obs_pdafomi(step)

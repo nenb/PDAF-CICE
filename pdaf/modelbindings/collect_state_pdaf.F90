@@ -28,7 +28,7 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 !
   ! !USES:
    USE mod_statevector, &
-       ONLY: fill2d_statevector, fill3d_statevector, calc_hi_average
+       ONLY: fill2d_statevector, fill3d_statevector
   
   IMPLICIT NONE
   
@@ -49,7 +49,6 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! *** Initialize state vector from model fields ***
 ! *************************************************
 
-  CALL calc_hi_average()
   CALL fill2d_statevector(dim_p, state_p)
   CALL fill3d_statevector(dim_p, state_p)
 

@@ -43,7 +43,6 @@ SUBROUTINE init_dim_obs_f_pdafomi(step, dim_obs_f)
   INTEGER, INTENT(out) :: dim_obs_f !< Dimension of full observation vector
 
 ! *** Local variables ***
-  INTEGER :: dim_obs_f_ice_thickness ! Observation dimensions
   INTEGER :: dim_obs_f_ice_concen ! Observation dimensions
   INTEGER :: dim_obs_f_ice_hi_m ! Observation dimensions
 
@@ -130,7 +129,6 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 
 ! *** local variables ***
   INTEGER :: offset_obs_l, offset_obs_f  ! local and full offsets
-  INTEGER :: dim_obs_l_ice_thickness ! Dimension of observation type
   INTEGER :: dim_obs_l_ice_concen ! Dimension of observation type
   INTEGER :: dim_obs_l_ice_hi_m ! Dimension of observation type
 
