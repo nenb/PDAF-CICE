@@ -197,7 +197,7 @@ CONTAINS
     INTEGER :: status                      ! Status flag
     INTEGER :: mon			   ! month (mm)
     INTEGER :: day  			   ! day (dd)
-    LOGICAL :: end_of_month = .FALSE.	   ! if we will assimilate
+    LOGICAL :: end_of_month                ! if we will assimilate
     REAL, ALLOCATABLE :: obs_field1(:,:)    ! Observation field read from file
     REAL, ALLOCATABLE :: ice_hi_m_field(:,:) ! Solely hi_m read in
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
@@ -220,15 +220,15 @@ CONTAINS
 
     ! Specify type of distance computation
     !thisobs%disttype = 0   ! 0=Cartesian
-    thisobs%disttype = 3   ! 3=Haversine ??? TO BE CONFIRMED
+    thisobs%disttype = 3   ! 3=Haversine
 
     ! Number of coordinates used for distance computation
     ! The distance compution starts from the first row
     thisobs%ncoord = 2
+
     ! Array for hi_m
     ALLOCATE(obs_field1(nx_global, ny_global))
-    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
-    !WRITE(*,*) "DEBUG YEAR: ", year
+
     IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
        day=mday-1
        mon = month
@@ -238,6 +238,18 @@ CONTAINS
        day=daymo(mon)
        end_of_month = .TRUE.
     END IF
+
+    ! *******************************
+    ! Only assimilate at end of month
+    ! *******************************
+!    IF (end_of_month .EQV. TRUE.) THEN
+!       thisobs%doassim = 1
+!    ELSE
+!       thisobs%doassim = 0
+!    END IF
+
+    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
+    !WRITE(*,*) "DEBUG YEAR: ", year
     IF (day == 1 .AND. mon == 1) THEN
        IF (first_year .EQV. .FALSE.) THEN
           year = year + 1
@@ -298,7 +310,6 @@ CONTAINS
 !	  END DO
        !END IF
 
-       IF (end_of_month .EQV. .TRUE.) THEN
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
@@ -306,7 +317,6 @@ CONTAINS
              CALL abort_parallel()
           END IF
        END DO
-       END IF
 
        ! *******************************************
        ! *** Close file containing initial state ***
@@ -323,7 +333,7 @@ CONTAINS
              CALL abort_parallel()
           END IF
        END DO
-       
+
     ELSE
        ! obs_field1 is aicen
        DO j = 1, ny_global
@@ -334,7 +344,6 @@ CONTAINS
              END IF
           END DO
        END DO
-
 
     END IF
 
@@ -356,7 +365,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_hi_m_field(i,j) >0 .AND. ice_hi_m_field(i,j) < 30) THEN
+          IF (ice_hi_m_field(i,j) >0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
              cnt = cnt + 1
           END IF
        END DO
@@ -415,11 +424,9 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_hi_m_field(i,j) >0 .AND. ice_hi_m_field(i,j) < 30) THEN
+          IF (ice_hi_m_field(i,j) >0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
              cnt = cnt + 1
-             ! Compute locations in state vector of (i,j,:) indices
-             thisobs%id_obs_p(1, cnt)  = hi_m_offset + cnt0 + &
-                  nx_global*ny_global
+             thisobs%id_obs_p(1, cnt)  = hi_m_offset + cnt0
              obs_p(cnt) = ice_hi_m_field(i,j)
              ! Use (i+1, j+1) due to ghost cells
              ocoord_p(1, cnt) = tlon(i+1,j+1,1)

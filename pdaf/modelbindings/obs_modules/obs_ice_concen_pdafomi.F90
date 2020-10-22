@@ -219,7 +219,7 @@ CONTAINS
 
     ! Specify type of distance computation
     !thisobs%disttype = 0   ! 0=Cartesian
-    thisobs%disttype = 3   ! 3=Haversine ??? TO BE CONFIRMED
+    thisobs%disttype = 3   ! 3=Haversine
 
     ! Number of coordinates used for distance computation
     ! The distance compution starts from the first row

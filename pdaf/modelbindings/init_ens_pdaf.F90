@@ -74,80 +74,80 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   ! is filled via call to routines in
   ! state vector module.
 
-  ! ***********************************
-  ! ***********************************
-
-  ! Loop over ensemble member IC files
-  memloop:DO  mem = 1, dim_ens
-
-     ! ******************************************
-     ! *** Open file containing initial state ***
-     ! ******************************************
-
-     ! IMPORTANT: init_ens only called by filter, hence year_init is constant.
-     yr = year_init + mem - 1
-     WRITE(year, '(i4)') yr
-     istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
-
-     s = 1
-     stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
-
-     DO i = 1, s
-        IF (stat(i) .NE. NF90_NOERR) THEN
-           WRITE(*,'(/9x, a, 3x, a)') &
-                'NetCDF error in opening initial state file:', istate_ncfile
-           CALL abort_parallel()
-        END IF
-     END DO
-
-     ! ************************
-     ! *** Check dimensions ***
-     ! ************************
-
-     s=1
-     stat(s) = NF90_INQ_DIMID(ncid_in, 'ni', id_dimx)
-     s = s + 1
-     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimx, len=dim_lon_ic)
-     s = s + 1
-     stat(s) = NF90_INQ_DIMID(ncid_in, 'nj', id_dimy)
-     s = s + 1
-     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat_ic)
-     s = s + 1
-     stat(s) = NF90_INQ_DIMID(ncid_in, 'ncat', id_dim_cat)
-     s = s + 1
-     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dim_cat, len=dim_cat_ic)
-
-     DO i = 1, s
-        IF (stat(i) .NE. NF90_NOERR) THEN
-           WRITE(*, '(/9x, a, 3x,i1 )') &
-                'NetCDF error in reading dimensions from initial state file, s=', i
-           CALL abort_parallel()
-        END IF
-     END DO
-
-     ! Compare global dimensions from model to dimensions in file.
-     IF (dim_lon_ic .NE. nx_global .OR. dim_lat_ic .NE. ny_global .OR. &
-          dim_cat_ic .NE. ncat) THEN
-        WRITE (*,'(/3x, a)') 'ERROR: Dimensions in initial state file not valid.'
-        CALL abort_parallel()
-     END IF
-
-     ! *******************************************
-     ! *** Close file containing initial state ***
-     ! *******************************************
-
-     s = 1
-     stat(s) = NF90_CLOSE(ncid_in)
-
-     DO i = 1, s
-        IF (stat(i) .NE. NF90_NOERR) THEN
-           WRITE(*,'(/9x, a, 3x, a)') &
-                'NetCDF error in closing initial state file:', istate_ncfile
-           CALL abort_parallel()
-        END IF
-     END DO
-
-  END DO memloop
+!!$  ! ***********************************
+!!$  ! ***********************************
+!!$
+!!$  ! Loop over ensemble member IC files
+!!$  memloop:DO  mem = 1, dim_ens
+!!$
+!!$     ! ******************************************
+!!$     ! *** Open file containing initial state ***
+!!$     ! ******************************************
+!!$
+!!$     ! IMPORTANT: init_ens only called by filter, hence year_init is constant.
+!!$     yr = year_init + mem - 1
+!!$     WRITE(year, '(i4)') yr
+!!$     istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
+!!$
+!!$     s = 1
+!!$     stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
+!!$
+!!$     DO i = 1, s
+!!$        IF (stat(i) .NE. NF90_NOERR) THEN
+!!$           WRITE(*,'(/9x, a, 3x, a)') &
+!!$                'NetCDF error in opening initial state file:', istate_ncfile
+!!$           CALL abort_parallel()
+!!$        END IF
+!!$     END DO
+!!$
+!!$     ! ************************
+!!$     ! *** Check dimensions ***
+!!$     ! ************************
+!!$
+!!$     s=1
+!!$     stat(s) = NF90_INQ_DIMID(ncid_in, 'ni', id_dimx)
+!!$     s = s + 1
+!!$     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimx, len=dim_lon_ic)
+!!$     s = s + 1
+!!$     stat(s) = NF90_INQ_DIMID(ncid_in, 'nj', id_dimy)
+!!$     s = s + 1
+!!$     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat_ic)
+!!$     s = s + 1
+!!$     stat(s) = NF90_INQ_DIMID(ncid_in, 'ncat', id_dim_cat)
+!!$     s = s + 1
+!!$     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dim_cat, len=dim_cat_ic)
+!!$
+!!$     DO i = 1, s
+!!$        IF (stat(i) .NE. NF90_NOERR) THEN
+!!$           WRITE(*, '(/9x, a, 3x,i1 )') &
+!!$                'NetCDF error in reading dimensions from initial state file, s=', i
+!!$           CALL abort_parallel()
+!!$        END IF
+!!$     END DO
+!!$
+!!$     ! Compare global dimensions from model to dimensions in file.
+!!$     IF (dim_lon_ic .NE. nx_global .OR. dim_lat_ic .NE. ny_global .OR. &
+!!$          dim_cat_ic .NE. ncat) THEN
+!!$        WRITE (*,'(/3x, a)') 'ERROR: Dimensions in initial state file not valid.'
+!!$        CALL abort_parallel()
+!!$     END IF
+!!$
+!!$     ! *******************************************
+!!$     ! *** Close file containing initial state ***
+!!$     ! *******************************************
+!!$
+!!$     s = 1
+!!$     stat(s) = NF90_CLOSE(ncid_in)
+!!$
+!!$     DO i = 1, s
+!!$        IF (stat(i) .NE. NF90_NOERR) THEN
+!!$           WRITE(*,'(/9x, a, 3x, a)') &
+!!$                'NetCDF error in closing initial state file:', istate_ncfile
+!!$           CALL abort_parallel()
+!!$        END IF
+!!$     END DO
+!!$
+!!$  END DO memloop
 
   ! ***************************************************
   ! *** Initialize ensemble array of state vectors  ***

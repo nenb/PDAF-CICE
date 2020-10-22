@@ -47,7 +47,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
     USE output_netcdf_asml, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml
   USE mod_statevector, &
-       ONLY: calc_hi_average, statevar_brutemod
+       ONLY: calc_hi_average, physics_check
   USE ice_blocks, &
        ONLY: nx_block, ny_block
   USE ice_calendar, &
@@ -129,10 +129,12 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 
   IF( (step > 0) .OR. (firsttime)) THEN
 
-     ! Brute force modications to state variables
-     CALL statevar_brutemod()
+     ! Check that PDAF updates satisfy physical laws.
+     ! Modify updates that do not satisfy physical laws.
+     CALL physics_check()
 
-     ! Update aggregate quantities from CICE
+     ! Update aggregate quantities from CICE. Should be
+     ! called AFTER physics_check.
      DO iblk = 1, nblocks
         !-------------------------------------------------------------
         ! aggregate tracers

@@ -193,10 +193,10 @@ CONTAINS
 SUBROUTINE calc_hi_average()
 
 ! !DESCRIPTION:
-! This routine stores the thicknesses from each day and calculates a 
+! This routine stores the thicknesses from each day and calculates a
 ! monthly mean ice thickness.
 
-  USE ice_calendar, ONLY: daymo, mday, month, monthp
+  USE ice_calendar, ONLY: daymo, mday, monthp
   USE ice_state, ONLY: aicen,vicen
   USE ice_constants, ONLY: c0, puny
 
@@ -205,52 +205,44 @@ SUBROUTINE calc_hi_average()
   INTEGER :: i, j, k ! Counters
   INTEGER :: true_day ! Finds the real day
   INTEGER :: true_month ! Finds the real month
-  LOGICAL :: end_of_month=.FALSE. !Whether to reset the running averages
-  REAL :: temp_sum,temp_grid_sum,temp_one,temp_two !temp values
-  
-  end_of_month=.FALSE.
-  
+  REAL :: temp_one,temp_two !temp values
+
+
   IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
      true_day=mday-1
-     true_month=month
   ELSE
      true_month=monthp
      true_day=daymo(true_month)
-     end_of_month=.TRUE.
   END IF
-  !true_day=mday
-  !true_month=month
-  !IF (mday /= daymo(month)) THEN
-  !   end_of_month=.FALSE.
-  !ELSE
-  !   end_of_month=.TRUE.
-  !END IF
 
+  ! Reset arrays on first day of month
   IF (true_day == 1) THEN
+     DO j=1,ny_global
+        DO i=1,nx_global
+           hi_grid_d(i+1,j+1) = c0
+        END DO
+     END DO
      DO k=1,ncat
         DO j=1,ny_global
-	   DO i=1,nx_global
-              hi_grid_d(i+1,j+1) = c0
+           DO i=1,nx_global
               hi_d(i+1,j+1,k) = c0
-	   END DO
+           END DO
         END DO
      END DO
   END IF
-
-
 
   DO k=1,ncat !Put daily values in the array
      DO j = 1,ny_global
         DO i = 1,nx_global
            IF (aicen(i+1,j+1,k,1) > puny) THEN
-              hi_d(i+1,j+1,k)=hi_d(i+1,j+1,k) + (vicen(i+1,j+1,k,1) * aicen(i+1,j+1,k,1))
+              hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k) + &
+                   (vicen(i+1,j+1,k,1) * aicen(i+1,j+1,k,1))
            ELSE
-	      hi_d(i+1,j+1,k)=hi_d(i+1,j+1,k)
+	      hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k)
  	   END IF
         END DO
      END DO
   END DO
-
 
   DO j=1,ny_global
      DO i=1,nx_global
@@ -260,32 +252,27 @@ SUBROUTINE calc_hi_average()
            temp_one=temp_one+vicen(i+1,j+1,k,1)
            temp_two=temp_two+aicen(i+1,j+1,k,1)
         END DO
-        IF (i==49 .AND. j==79) THEN
-        END IF
         IF (temp_one > puny .AND. temp_two > puny) THEN
            hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + temp_one
         ELSE
 	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
 	END IF
      END DO
-  END DO  
+  END DO
 
   DO k=1,ncat
      DO j=1,ny_global
         DO i=1,nx_global
-           hin(i+1,j+1,k) = hi_d(i+1,j+1,k) / REAL(true_day,8)
+           hin(i+1,j+1,k) = hi_d(i+1,j+1,k) / REAL(true_day)
         END DO
      END DO
   END DO
 
   DO j=1,ny_global
      DO i=1,nx_global
-        hi_m(i+1,j+1)=hi_grid_d(i+1,j+1)/REAL(true_day,8)
+        hi_m(i+1,j+1) = hi_grid_d(i+1,j+1) / REAL(true_day)
      END DO
   END DO
-  
-
-
 
 END SUBROUTINE calc_hi_average
 
@@ -695,22 +682,23 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
         pos = (/ 1, 1 /)
         cnt = (/ nx_global , ny_global /)
         s = s + 1
-	IF (id2d_list(idx) /= 'hi_m') THEN
-        stat(s) = NF90_GET_VAR(ncid_in, id_2dvar, var2d, start=pos, count=cnt)
-	ELSE
-	var2d=0
-	END IF
 
-	IF (id2d_list(idx) /= 'hi_m') THEN
-        DO i = 1, s
-           IF (stat(i) .NE. NF90_NOERR) THEN
-              WRITE(*,'(/9x, a, 3x, a)') &
-                   'NetCDF error in reading initial state file, var=', &
-                   trim(id2d_list(idx))
-              CALL abort_parallel()
-           END IF
-        END DO
-	END IF
+        IF (id2d_list(idx) .NE. 'hi_m') THEN
+           stat(s) = NF90_GET_VAR(ncid_in, id_2dvar, var2d, start=pos, count=cnt)
+        ELSE
+           var2d(:,:)=0.0
+        END IF
+
+        IF (id2d_list(idx) .NE. 'hi_m') THEN
+           DO i = 1, s
+              IF (stat(i) .NE. NF90_NOERR) THEN
+                 WRITE(*,'(/9x, a, 3x, a)') &
+                      'NetCDF error in reading initial state file, var=', &
+                      trim(id2d_list(idx))
+                 CALL abort_parallel()
+              END IF
+           END DO
+        END IF
 
         ! Write fields into state vector
         DO j = 1,ny_global
@@ -777,7 +765,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
      ! *** Open file containing initial state ***
      ! ******************************************
 
-     yr = year_init  + member - 1
+     yr = year_init + member - 1
      WRITE(year, '(i4)') yr
      istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
      s = 1
@@ -811,22 +799,23 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
         pos = (/ 1, 1, 1 /)
         cnt = (/ nx_global , ny_global , ncat /)
         s = s + 1
-	IF (id3d_list(idx) /= 'hin') THEN
-        stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, var3d, start=pos, count=cnt)
-	ELSE
-	var3d=0
-	END IF
 
-	IF (id3d_list(idx) /= 'hin') THEN
-        DO i = 1, s
-           IF (stat(i) .NE. NF90_NOERR) THEN
-              WRITE(*,'(/9x, a, 3x, a)') &
-                   'NetCDF error in reading initial state file, var=', &
-                   trim(id3d_list(idx))
-              CALL abort_parallel()
-           END IF
-        END DO
-	END IF
+        IF (id3d_list(idx) .NE. 'hin') THEN
+           stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, var3d, start=pos, count=cnt)
+        ELSE
+           var3d(:,:,:)=0.0
+        END IF
+
+        IF (id3d_list(idx) .NE. 'hin') THEN
+           DO i = 1, s
+              IF (stat(i) .NE. NF90_NOERR) THEN
+                 WRITE(*,'(/9x, a, 3x, a)') &
+                      'NetCDF error in reading initial state file, var=', &
+                      trim(id3d_list(idx))
+                 CALL abort_parallel()
+              END IF
+           END DO
+        END IF
 
         ! Write fields into state vector:
         DO k = 1,ncat
@@ -1429,7 +1418,7 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
 
   DO j = 1,ny_global
      DO i = 1,nx_global
-         sst(i+1,j+1,1) = state_p(i+(j-1)*nx_global + sst_offset)
+        sst(i+1,j+1,1) = state_p(i+(j-1)*nx_global + sst_offset)
 !        sst(i+1,j+1,1) = min(state_p(i+(j-1)*nx_global + sst_offset),sst(i+1,j+1,1)+0.1,sst(i+1,j+1,1)-0.1)
      END DO
   END DO
@@ -1498,15 +1487,12 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
   ! Distribute state vector 3d state variables.
 
   ! !USES:
-  USE netcdf
   USE ice_state, &
        ONLY: aicen, vicen, vsnon, trcrn, nt_Tsfc, nt_iage, &
        nt_FY, nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-       nt_sice, nt_qice, nt_qsno, aice, aice0, vice
-  USE ice_flux, &
-       ONLY: sst
+       nt_sice, aice, aice0, vice
   USE ice_constants, &
-       ONLY: c0, puny, rhoi, Lfresh, rhos
+       ONLY: c0, puny
 
 
   IMPLICIT NONE
@@ -1517,25 +1503,37 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 
   ! *** local variables ***
   INTEGER :: i, j, k        ! Counters
-  REAL :: catsum, newq            ! Sum of categories
   LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
 
   ! Calculate offsets in case not already calculated
   CALL calc_3d_offset()
 
-  ! ************************************
-  ! Distribute state vector 3d variables
-  ! ************************************
+  ! *********************************************
+  ! Distribute enthalpy state vector 3d variables
+  ! *********************************************
 
-  ! If routine is called for first time then don't need to worry about PDAF
-  ! creating/destroying ice, and distribute enthalpies only on first timestep.
-  IF(firsttime) THEN
+  ! ***********   WARNING   *********************
+  !
+  ! Routine to distribute enthalpy variables must
+  ! be called BEFORE other variables distributed.
+  !
+  ! *********************************************
+
+  CALL distrib_enthalpies(dim_p, state_p)
+
+  ! *************************************************
+  ! Distribute non-enthalpy state vector 3d variables
+  ! *************************************************
+
+  ! Only distribute alvl, vlvl, apnd, hpnd and ipnd variables on first
+  ! model timestep (initialisation only).
+  firststep:IF (firsttime) THEN
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              aicen(i+1,j+1,k,1) = &
+              trcrn(i+1,j+1,nt_alvl,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   aicen_offset)
+                   alvl_offset)
            END DO
         END DO
      END DO
@@ -1543,9 +1541,9 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              vicen(i+1,j+1,k,1) = &
+              trcrn(i+1,j+1,nt_vlvl,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   vicen_offset)
+                   vlvl_offset)
            END DO
         END DO
      END DO
@@ -1553,20 +1551,19 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              vsnon(i+1,j+1,k,1) = &
+              trcrn(i+1,j+1,nt_apnd,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   vsnon_offset)
+                   apnd_offset)
            END DO
         END DO
      END DO
 
-
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_Tsfc,k,1) = &
+              trcrn(i+1,j+1,nt_hpnd,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   Tsfcn_offset)
+                   hpnd_offset)
            END DO
         END DO
      END DO
@@ -1574,239 +1571,128 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      DO k =1,ncat
         DO j = 1,ny_global
            DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice,k,1) = &
+              trcrn(i+1,j+1,nt_ipnd,k,1) = &
                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice001_offset)
+                   ipnd_offset)
            END DO
         END DO
      END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice+1,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice002_offset)
-           END DO
+     firsttime=.FALSE.
+  END IF firststep
+
+  ! *******************************************************
+  ! Distribute remaining state variables on all time steps.
+  ! *******************************************************
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           aicen(i+1,j+1,k,1) = &
+                state_p(i+(j-1)*nx_global + (k-1)*nx_global*ny_global + &
+                aicen_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice+2,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice003_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           vicen(i+1,j+1,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                vicen_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice+3,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice004_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           vsnon(i+1,j+1,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                vsnon_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice+4,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice005_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice001_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice+5,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice006_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice+1,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice002_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_sice+6,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   sice007_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice+2,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice003_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice001_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice+3,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice004_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice+1,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice002_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice+4,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice005_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice+2,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice003_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice+5,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice006_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice+3,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice004_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_sice+6,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                sice007_offset)
         END DO
      END DO
+  END DO
 
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice+4,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice005_offset)
-           END DO
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           trcrn(i+1,j+1,nt_Tsfc,k,1) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                Tsfcn_offset)
         END DO
      END DO
-
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice+5,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice006_offset)
-           END DO
-        END DO
-     END DO
-
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              trcrn(i+1,j+1,nt_qice+6,k,1) = &
-                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                   qice007_offset)
-           END DO
-        END DO
-     END DO
-     ! Update logical switch
-     firsttime = .FALSE.
-
-  ! When PDAF creates ice use special routine  we need to prescribe ice and snow enthalpy
-  ELSE
-     DO k =1,ncat
-        DO j = 1,ny_global
-           DO i = 1,nx_global
-              IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset) > puny) THEN
-		 IF (state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset) > 0.1) THEN
-	            WRITE(*,*) 'WARNING: creating significant ice at grid cell'
-		    WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
-                    state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset)
-		 END IF
-		 aicen(i+1,j+1,k,1) = state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + aicen_offset)
-                 vicen(i+1,j+1,k,1) = state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + vicen_offset)
-                 vsnon(i+1,j+1,k,1) = state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + vsnon_offset)
-                 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh 
-                 newq = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice,k,1) = newq
-                 trcrn(i+1,j+1,nt_qice+1,k,1) = newq
-                 trcrn(i+1,j+1,nt_qice+2,k,1) = newq
-                 trcrn(i+1,j+1,nt_qice+3,k,1) = newq
-                 trcrn(i+1,j+1,nt_qice+4,k,1) = newq
-                 trcrn(i+1,j+1,nt_qice+5,k,1) = newq
-                 trcrn(i+1,j+1,nt_qice+6,k,1) = newq
-	         trcrn(i+1,j+1,nt_sice,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice001_offset)
-	         trcrn(i+1,j+1,nt_sice+1,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice002_offset)
-	         trcrn(i+1,j+1,nt_sice+2,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice003_offset)
-	         trcrn(i+1,j+1,nt_sice+3,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice004_offset)
-	         trcrn(i+1,j+1,nt_sice+4,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice005_offset)
-	         trcrn(i+1,j+1,nt_sice+5,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice006_offset)
-	         trcrn(i+1,j+1,nt_sice+6,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice007_offset)
-                 trcrn(i+1,j+1,nt_Tsfc,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      Tsfcn_offset)
-                 
-              ELSE
-                 aicen(i+1,j+1,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      aicen_offset)
-                 vicen(i+1,j+1,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      vicen_offset)
-                 vsnon(i+1,j+1,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      vsnon_offset)
-                 trcrn(i+1,j+1,nt_Tsfc,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      Tsfcn_offset)
-	         trcrn(i+1,j+1,nt_sice,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice001_offset)
-	         trcrn(i+1,j+1,nt_sice+1,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice002_offset)
-	         trcrn(i+1,j+1,nt_sice+2,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice003_offset)
-	         trcrn(i+1,j+1,nt_sice+3,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice004_offset)
-	         trcrn(i+1,j+1,nt_sice+4,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice005_offset)
-	         trcrn(i+1,j+1,nt_sice+5,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice006_offset)
-	         trcrn(i+1,j+1,nt_sice+6,k,1) = &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      sice007_offset)
-              END IF
-           END DO
-        END DO
-     END DO
-
-  END IF
-
-! *******************************************************
-! Update remaining state variables in same way regardless
-! of whether routine is called for first time
-! *******************************************************
-
+  END DO
 
   DO k =1,ncat
      DO j = 1,ny_global
@@ -1828,6 +1714,19 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
      END DO
   END DO
 
+  DO k =1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           hin(i+1,j+1,k) = &
+                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                hin_offset)
+        END DO
+     END DO
+  END DO
+
+  ! ************************************************************
+  ! Following state variables not updated to avoid CICE crashes!
+  ! ************************************************************
 !  DO k =1,ncat
 !     DO j = 1,ny_global
 !        DO i = 1,nx_global
@@ -1847,8 +1746,6 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 !        END DO
 !     END DO
 !  END DO
-
-!!! Following state variables not updated to avoid CICE crashes!
 
 !  DO k =1,ncat
 !     DO j = 1,ny_global
@@ -1966,24 +1863,150 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
 !     END DO
 !  END DO
 
-
-  DO k =1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           hin(i+1,j+1,k) = &
-                state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                hin_offset)
-        END DO
-     END DO
-  END DO
-
 END SUBROUTINE distrib3d_statevector
 
-SUBROUTINE statevar_brutemod()
+SUBROUTINE distrib_enthalpies(dim_p, state_p)
 
 ! !DESCRIPTION:
-  ! Temporary location for brute force modifications to state variables.
-  ! Also contains updates of some state variable derived quantities.
+  ! Distribute enthalpy variables to CICE on first timestep or when
+  ! PDAF creates ice.
+
+! !USES:
+  USE ice_state, &
+       ONLY: aicen, trcrn, nt_qice, nt_qsno
+  USE ice_constants, &
+       ONLY: c0, puny, rhoi, Lfresh, rhos
+
+  IMPLICIT NONE
+
+! !ARGUMENTS
+  INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
+  REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+
+  ! *** local variables ***
+  INTEGER :: i, j, k        ! Counters
+  LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
+
+
+  ! If routine is called for first time then don't need to worry about PDAF
+  ! creating/destroying ice, and distribute enthalpies only on first timestep.
+  firststep:IF(firsttime) THEN
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice001_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice+1,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice002_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice+2,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice003_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice+3,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice004_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice+4,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice005_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice+5,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice006_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qice+6,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qice007_offset)
+           END DO
+        END DO
+     END DO
+
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              trcrn(i+1,j+1,nt_qsno,k,1) = &
+                   state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                   qsno001_offset)
+           END DO
+        END DO
+     END DO
+
+     ! Update logical switch
+     firsttime = .FALSE.
+
+     ! When PDAF creates ice use special routine. We need to prescribe ice and
+     ! snow enthalpy.
+  ELSE firststep
+     DO k =1,ncat
+        DO j = 1,ny_global
+           DO i = 1,nx_global
+              IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global + &
+                   (k-1)*nx_global*ny_global + aicen_offset) > 0.1) THEN
+                 WRITE(*,*) 'WARNING: creating significant ice at grid cell'
+                 WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
+                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      aicen_offset)
+                 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
+                 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
+                 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
+                 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh
+                 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh
+                 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
+                 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
+                 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
+              END IF
+           END DO
+        END DO
+     END DO
+
+  END IF firststep
+
+END SUBROUTINE distrib_enthalpies
+
+SUBROUTINE physics_check()
+
+! !DESCRIPTION:
+  ! Check that PDAF updates satify physical laws.
 
 ! !USES:
   USE ice_state, &
@@ -1998,87 +2021,202 @@ SUBROUTINE statevar_brutemod()
 
 ! *** local variables ***
   INTEGER :: i, j, k        ! Counters
-  REAL :: icetotal, icetemp          ! Sum of ice concentration categories
-!!!!!!!!!!!!!! If total ice is greater than one, redistribute with same
-!percentages in each category
-!Also now try redistributing volumes to conserve mass
-  
-!!!!!!!!!!!!!! aice, vice, and vsno cannnot be negative, if so set others to 0!
+  REAL :: icetotal          ! Sum of ice concentration categories
 
+
+  ! Snow and ice enthalpies cannot be positive, salinities cannot be negative.
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-
-!!!!! snow and ice enthalpies cannot be positive, salinities cannot be negative
-	  
            IF (trcrn(i+1,j+1,nt_qsno,k,1) > 0.0) THEN
-                trcrn(i+1,j+1,nt_qsno,k,1) = 0.0
+              trcrn(i+1,j+1,nt_qsno,k,1) = 0.0
            END IF
-	   IF (trcrn(i+1,j+1,nt_sice,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_sice+1,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice+1,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_sice+2,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice+2,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_sice+3,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice+3,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_sice+4,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice+4,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_sice+5,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice+5,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_sice+6,k,1) < 0.0) THEN
-		trcrn(i+1,j+1,nt_sice+6,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice+1,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice+1,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice+2,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice+2,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice+3,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice+3,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice+4,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice+4,k,1) = 0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice+5,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice+5,k,1) = 0.0
-	   END IF
-	   IF (trcrn(i+1,j+1,nt_qice+6,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_qice+6,k,1) = 0.0
-	   END IF
-           IF (trcrn(i+1,j+1,nt_apnd,k,1) < puny) THEN
-                trcrn(i+1,j+1,nt_apnd,k,1) = c0
-           END IF
-           IF (trcrn(i+1,j+1,nt_hpnd,k,1) < puny) THEN
-                trcrn(i+1,j+1,nt_hpnd,k,1) = c0
-           END IF
-           IF (trcrn(i+1,j+1,nt_ipnd,k,1) < puny) THEN
-                trcrn(i+1,j+1,nt_ipnd,k,1) = c0
-           END IF
-
-
-
-!!!!!!!!!!!!!! Tsfcn cannot be above melting temperature of snow (0.0 Deg Celsius)
-
-
-	   IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > 0.0) THEN
-		trcrn(i+1,j+1,nt_Tsfc,k,1) = 0.0
-	   END IF
-
         END DO
      END DO
   END DO
 
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice+1,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice+1,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice+2,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice+2,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice+3,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice+3,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice+4,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice+4,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice+5,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice+5,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_sice+6,k,1) < 0.0) THEN
+              trcrn(i+1,j+1,nt_sice+6,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice+1,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice+1,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice+2,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice+2,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice+3,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice+3,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice+4,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice+4,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice+5,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice+5,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_qice+6,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_qice+6,k,1) = 0.0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_apnd,k,1) < puny) THEN
+              trcrn(i+1,j+1,nt_apnd,k,1) = c0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_hpnd,k,1) < puny) THEN
+              trcrn(i+1,j+1,nt_hpnd,k,1) = c0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+           IF (trcrn(i+1,j+1,nt_ipnd,k,1) < puny) THEN
+              trcrn(i+1,j+1,nt_ipnd,k,1) = c0
+           END IF
+        END DO
+     END DO
+  END DO
+
+  ! Tsfcn cannot be above melting temperature of snow (0.0 Deg Celsius)
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+	   IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > 0.0) THEN
+              trcrn(i+1,j+1,nt_Tsfc,k,1) = 0.0
+	   END IF
+        END DO
+     END DO
+  END DO
+
+  ! Individual category in aicen cannot have value greater than 1
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
@@ -2088,40 +2226,29 @@ SUBROUTINE statevar_brutemod()
         END DO
      END DO
   END DO
- 
+
+  ! INSERT DESCRIPTION HERE
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-           IF (aicen(i+1,j+1,k,1) <= puny) THEN
-                aicen(i+1,j+1,k,1) = c0
-                vsnon(i+1,j+1,k,1) = c0
-                trcrn(i+1,j+1,nt_qsno,k,1) = c0
-                vicen(i+1,j+1,k,1) = c0
+           IF ( (aicen(i+1,j+1,k,1) <= puny) .OR. (vsnon(i+1,j+1,k,1) <= puny) &
+                .OR. (vicen(i+1,j+1,k,1) <= puny) ) THEN
+              aicen(i+1,j+1,k,1) = c0
+              vsnon(i+1,j+1,k,1) = c0
+              trcrn(i+1,j+1,nt_qsno,k,1) = c0
+              vicen(i+1,j+1,k,1) = c0
            END IF
-           IF (vsnon(i+1,j+1,k,1) <= puny) THEN
-                vsnon(i+1,j+1,k,1) = c0
-                aicen(i+1,j+1,k,1) = c0
-                trcrn(i+1,j+1,nt_qsno,k,1) = c0
-                vicen(i+1,j+1,k,1) = c0
-           END IF
-           IF (vicen(i+1,j+1,k,1) <= puny) THEN
-                aicen(i+1,j+1,k,1) = c0
-                vsnon(i+1,j+1,k,1) = c0
-                trcrn(i+1,j+1,nt_qsno,k,1) = c0
-                vicen(i+1,j+1,k,1) = c0
-           END IF
-
         END DO
      END DO
   END DO
 
+  ! If total ice concentration greater than 1, normalise.
   DO j = 1,ny_global
      DO i = 1,nx_global
         icetotal = c0
-        DO k=1,5
-                icetotal = icetotal + aicen(i+1,j+1,k,1)
-        END DO 
-        ! If total ice concentration greater than 1, redistribute
+        DO k=1,ncat
+           icetotal = icetotal + aicen(i+1,j+1,k,1)
+        END DO
         IF (icetotal > c1) THEN
            aicen(i+1,j+1,1:ncat,1) = aicen(i+1,j+1,1:ncat,1)/icetotal
            !vicen(i+1,j+1,1:ncat,1) = vicen(i+1,j+1,1:ncat,1)/icetotal
@@ -2130,10 +2257,8 @@ SUBROUTINE statevar_brutemod()
      END DO
   END DO
 
-
-!!!!!!!!!!!!! If no longer ice in a category, reset values in that grid cell for
-!that category
-
+  ! If no longer ice in a category, reset values in that grid cell for
+  ! that category.
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
@@ -2161,35 +2286,38 @@ SUBROUTINE statevar_brutemod()
               trcrn(i+1,j+1,nt_sice+6,k,1) = c0
               trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.836
            END IF
+        END DO
+     END DO
+  END DO
 
-
+  ! Check Salinities and surface temperatures are not out of bounds.
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
 	   IF (aicen(i+1,j+1,k,1) > c0) THEN
-
-!!! Check Salinities and surface temperatures are not out of bounds
-
 	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh 
+		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice+1,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice+2,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice+3,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice+4,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice+5,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
 	      END IF
 	      IF (trcrn(i+1,j+1,nt_qice+6,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh 
+		 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
 	      END IF
               IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -1.9) THEN
                  trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.9
@@ -2219,6 +2347,7 @@ SUBROUTINE statevar_brutemod()
         END DO
      END DO
   END DO
-END SUBROUTINE statevar_brutemod
+
+END SUBROUTINE physics_check
 
 END MODULE mod_statevector
