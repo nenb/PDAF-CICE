@@ -1981,11 +1981,7 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
         DO j = 1,ny_global
            DO i = 1,nx_global
               IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global + &
-                   (k-1)*nx_global*ny_global + aicen_offset) > 0.1) THEN
-                 WRITE(*,*) 'WARNING: creating significant ice at grid cell'
-                 WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      aicen_offset)
+                   (k-1)*nx_global*ny_global + aicen_offset) > puny) THEN
                  trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
                  trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
                  trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
@@ -1994,6 +1990,13 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
                  trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
                  trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
                  trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
+              END IF
+              IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global + &
+                   (k-1)*nx_global*ny_global + aicen_offset) > 0.1) THEN
+                 WRITE(*,*) 'WARNING: creating significant ice at grid cell'
+                 WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
+                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      aicen_offset)
               END IF
            END DO
         END DO
