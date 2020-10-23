@@ -47,21 +47,11 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
     USE output_netcdf_asml, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml
   USE mod_statevector, &
-       ONLY: calc_hi_average, physics_check
-  USE ice_blocks, &
-       ONLY: nx_block, ny_block
+       ONLY: calc_hi_average
   USE ice_calendar, &
        ONLY: dt, npt, idate0, time
-  USE ice_domain, &
-       ONLY: nblocks
   USE ice_domain_size, &
-       ONLY: nx_global, ny_global, ncat, max_ntrcr
-  USE ice_grid, &
-       ONLY: tmask
-  USE ice_itd, &       ! Update CICE aggregate quantities
-       ONLY: aggregate
-  USE ice_state        ! Variables required for aggregate subroutine
-
+       ONLY: nx_global, ny_global, ncat
 
   IMPLICIT NONE
 
@@ -84,7 +74,6 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 
 ! *** local variables ***
   INTEGER :: i, j, member, domain     ! Counters
-  INTEGER :: iblk                     ! Counter
   LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
   REAL :: invdim_ens                   ! Inverse ensemble size
   CHARACTER(len=2) :: stepstr         ! String for time step
@@ -115,7 +104,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   END IF
 
 ! *****************************************
-! *** Calculations before collect state ***
+! *** Calculations before analysis step ***
 ! *****************************************
 
   IF (step < 0) THEN
@@ -123,37 +112,13 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      CALL calc_hi_average()
   END IF
 
-! ******************************************
-! *** Adjustments after distribute state ***
-! ******************************************
+! ****************************************
+! *** Calculations after analysis step ***
+! ****************************************
 
-  IF( (step > 0) .OR. (firsttime)) THEN
-
-     ! Check that PDAF updates satisfy physical laws.
-     ! Modify updates that do not satisfy physical laws.
-     CALL physics_check()
-
-     ! Update aggregate quantities from CICE. Should be
-     ! called AFTER physics_check.
-     DO iblk = 1, nblocks
-        !-------------------------------------------------------------
-        ! aggregate tracers
-        !-------------------------------------------------------------
-        CALL aggregate (nx_block, ny_block, &
-             aicen(:,:,:,iblk),  &
-             trcrn(:,:,:,:,iblk),&
-             vicen(:,:,:,iblk),  &
-             vsnon(:,:,:,iblk),  &
-             aice (:,:,  iblk),  &
-             trcr (:,:,:,iblk),  &
-             vice (:,:,  iblk),  &
-             vsno (:,:,  iblk),  &
-             aice0(:,:,  iblk),  &
-             tmask(:,:,  iblk),  &
-             max_ntrcr,          &
-             trcr_depend)
-     END DO
-  END IF
+!!$  IF (step > 0) THEN
+!!$
+!!$  END IF
 
 ! **************************************
 ! *** Begin statistical calculations ***

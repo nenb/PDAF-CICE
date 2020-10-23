@@ -34,7 +34,19 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 !
 ! !USES:
   USE mod_statevector, &
-       ONLY: distrib2d_statevector, distrib3d_statevector
+       ONLY: distrib2d_statevector, distrib3d_statevector, &
+       physics_check
+  USE ice_blocks, &
+       ONLY: nx_block, ny_block
+  USE ice_itd, &       ! Update CICE aggregate quantities
+       ONLY: aggregate
+  USE ice_grid, &
+       ONLY: tmask
+  USE ice_domain, &
+       ONLY: nblocks
+  USE ice_domain_size, &
+       ONLY: nx_global, ny_global, ncat, max_ntrcr
+  USE ice_state        ! Variables required for aggregate subroutine
 
   IMPLICIT NONE
   
@@ -48,12 +60,44 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! Calls: distribX_statevector
 !EOP
 
+! *** local variables ***
+  INTEGER :: iblk                     ! Counter
+
 
 ! *******************************************
-! *** Initialize model fields from state  ***
+! *** Distribute model fields from state  ***
 !********************************************
 
   CALL distrib2d_statevector(dim_p, state_p)
   CALL distrib3d_statevector(dim_p, state_p)
+
+! ******************************************
+! *** Adjustments after distribute state ***
+! ******************************************
+
+  ! Check that PDAF updates satisfy physical laws.
+  ! Modify updates that do not satisfy physical laws.
+  CALL physics_check()
+
+  ! Update aggregate quantities from CICE. Should be
+  ! called AFTER physics_check.
+  DO iblk = 1, nblocks
+     !-------------------------------------------------------------
+     ! aggregate tracers
+     !-------------------------------------------------------------
+     CALL aggregate (nx_block, ny_block, &
+          aicen(:,:,:,iblk),  &
+          trcrn(:,:,:,:,iblk),&
+          vicen(:,:,:,iblk),  &
+          vsnon(:,:,:,iblk),  &
+          aice (:,:,  iblk),  &
+          trcr (:,:,:,iblk),  &
+          vice (:,:,  iblk),  &
+          vsno (:,:,  iblk),  &
+          aice0(:,:,  iblk),  &
+          tmask(:,:,  iblk),  &
+          max_ntrcr,          &
+          trcr_depend)
+  END DO
 
 END SUBROUTINE distribute_state_pdaf
