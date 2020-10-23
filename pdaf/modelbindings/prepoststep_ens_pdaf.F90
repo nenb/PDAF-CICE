@@ -46,8 +46,6 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
        ONLY: mype_filter
     USE output_netcdf_asml, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml
-  USE mod_statevector, &
-       ONLY: calc_hi_average
   USE ice_calendar, &
        ONLY: dt, npt, idate0, time
   USE ice_domain_size, &
@@ -107,10 +105,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 ! *** Calculations before analysis step ***
 ! *****************************************
 
-  IF (step < 0) THEN
-     ! Compute monthly-mean ice thickness for CICE
-     CALL calc_hi_average()
-  END IF
+!!$  IF (step < 0) THEN
+!!$    
+!!$  END IF
 
 ! ****************************************
 ! *** Calculations after analysis step ***

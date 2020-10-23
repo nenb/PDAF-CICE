@@ -28,7 +28,7 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 !
   ! !USES:
    USE mod_statevector, &
-       ONLY: fill2d_statevector, fill3d_statevector
+       ONLY: fill2d_statevector, fill3d_statevector, calc_hi_average
   
   IMPLICIT NONE
   
@@ -45,9 +45,17 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! *** local variables ***
 
 
-! *************************************************
-! *** Initialize state vector from model fields ***
-! *************************************************
+! ********************************************* 
+! *** Calculations prior to sending to PDAF ***
+! *********************************************
+
+  ! Compute monthly-mean ice thickness
+  CALL calc_hi_average()
+
+
+! *******************************************
+! *** Fill state vector from model fields ***
+! *******************************************
 
   CALL fill2d_statevector(dim_p, state_p)
   CALL fill3d_statevector(dim_p, state_p)
