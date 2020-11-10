@@ -40,7 +40,7 @@ MODULE output_netcdf_asml
   CHARACTER(len=20), DIMENSION(3) :: output_3dvar
 
   DATA output_2dvar / 'hi_m' /
-  DATA output_3dvar / 'aicen', 'vicen', 'hin' /
+  DATA output_3dvar / 'aicen', 'vicen', 'hi_dist' /
 
 ! Array of 2d/3d state variable offsets (actually *indices* for var2d_offset and
 ! var3d_offset) that are to be output to file.

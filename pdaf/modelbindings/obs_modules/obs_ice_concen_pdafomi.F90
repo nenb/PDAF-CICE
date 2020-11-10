@@ -52,7 +52,7 @@ MODULE obs_ice_concen_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_concen=.FALSE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_concen=.TRUE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_concen      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
@@ -64,7 +64,7 @@ MODULE obs_ice_concen_pdafomi
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 1980                 ! Set to first year of assim
+  INTEGER :: year = 2012                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -316,7 +316,7 @@ CONTAINS
           DO j = 1, ny_global
              DO i= 1, nx_global
                 obs_field1(i,j,k) = 0.0
-                IF (i>=76 .AND. i<=82 .AND. j>=52 .AND. j<=61) THEN
+                IF (i >= 45 .AND. i<= 55 .AND. j>=80 .AND.  j<=90) THEN
                         obs_field1(i,j,1) = 1.0
                         obs_field1(i,j,2) = 0.0
                         obs_field1(i,j,3) = 0.0
@@ -352,7 +352,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_concen_field(i,j) >=0.0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
+          IF (ice_concen_field(i,j) >0.0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
              cnt = cnt + 1
           END IF
        END DO
@@ -409,7 +409,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_concen_field(i,j) >=0.0 .AND. ice_concen_field(i,j) <=1.0) THEN
+          IF (ice_concen_field(i,j) >0.0 .AND. ice_concen_field(i,j) <=1.0) THEN
              cnt = cnt + 1
              DO k = 1, ncat
                 ! Compute locations in state vector of (i,j,:) indices

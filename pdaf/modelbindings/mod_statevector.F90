@@ -15,11 +15,11 @@ MODULE mod_statevector
 ! Define variables to later store monthly mean thickness in a grid cell
 ! and per thickness category in a grid cell
 ! Also temporary arrays hi_d and hi_grid_d store daily values
-! hin and hi_m have ghost cells to be consistent with the true CICE state vector
+! hi_dist and hi_m have ghost cells to be consistent with the true CICE state vector
 
-  REAL, DIMENSION (nx_global+2,ny_global+2,ncat) :: hin
-  REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_m
+  REAL, DIMENSION (nx_global+2,ny_global+2,ncat) :: hi_dist
   REAL, DIMENSION (nx_global+2,ny_global+2,ncat) :: hi_d
+  REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_m
   REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_grid_d
 
 ! 2d state vector variables - start index
@@ -119,7 +119,7 @@ MODULE mod_statevector
   INTEGER :: sice007_offset
   INTEGER :: qice007_offset
   INTEGER :: qsno001_offset
-  INTEGER :: hin_offset
+  INTEGER :: hi_dist_offset
 
 ! Array holding 3d state variable offsets
   INTEGER :: var3d_offset(27)
@@ -151,7 +151,7 @@ MODULE mod_statevector
   INTEGER :: sice007_dim_state
   INTEGER :: qice007_dim_state
   INTEGER :: qsno001_dim_state
-  INTEGER :: hin_dim_state
+  INTEGER :: hi_dist_dim_state
 
 ! Array holding 3d state variable dimensions
   INTEGER :: var3d_dim_state(27)
@@ -185,7 +185,7 @@ MODULE mod_statevector
        'hpnd', 'ipnd', 'sice001', 'qice001', 'sice002',&
        'qice002', 'sice003', 'qice003', 'sice004', 'qice004',&
        'sice005', 'qice005', 'sice006', 'qice006', 'qice007',&
-       'sice007', 'qsno001', 'hin' /
+       'sice007', 'qsno001', 'hi_dist' /
 
 
 CONTAINS
@@ -236,7 +236,8 @@ SUBROUTINE calc_hi_average()
         DO i = 1,nx_global
            IF (aicen(i+1,j+1,k,1) > puny) THEN
               hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k) + &
-                   (vicen(i+1,j+1,k,1) * aicen(i+1,j+1,k,1))
+                   (vicen(i+1,j+1,k,1) / aicen(i+1,j+1,k,1))
+              !hi_d(i+1,j+1,k) = vicen(i+1,j+1,k,1) / aicen(i+1,j+1,k,1)
            ELSE
 	      hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k)
  	   END IF
@@ -253,17 +254,20 @@ SUBROUTINE calc_hi_average()
            temp_two=temp_two+aicen(i+1,j+1,k,1)
         END DO
         IF (temp_one > puny .AND. temp_two > puny) THEN
-           hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + temp_one
+           hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + (temp_one/temp_two) !keep
+           !for mon ave
+           !hi_grid_d(i+1,j+1) = temp_one/temp_two
         ELSE
-	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
-	END IF
+	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) !keep for mon ave
+	   !hi_grid_d(i+1,j+1) = 0
+        END IF
      END DO
   END DO
 
   DO k=1,ncat
      DO j=1,ny_global
         DO i=1,nx_global
-           hin(i+1,j+1,k) = hi_d(i+1,j+1,k) / REAL(true_day)
+           hi_dist(i+1,j+1,k) = hi_d(i+1,j+1,k) / REAL(true_day)
         END DO
      END DO
   END DO
@@ -391,7 +395,7 @@ SUBROUTINE calc_3d_offset()
   sice007_offset = qice006_offset + nx_global*ny_global*ncat
   qice007_offset = sice007_offset + nx_global*ny_global*ncat
   qsno001_offset = qice007_offset + nx_global*ny_global*ncat
-  hin_offset = qsno001_offset + nx_global*ny_global*ncat
+  hi_dist_offset = qsno001_offset + nx_global*ny_global*ncat
 
   ! Fill  array of state variable offsets
   var3d_offset(1) = aicen_offset
@@ -420,7 +424,7 @@ SUBROUTINE calc_3d_offset()
   var3d_offset(24) = qice007_offset
   var3d_offset(25) = sice007_offset
   var3d_offset(26) = qsno001_offset
-  var3d_offset(27) = hin_offset
+  var3d_offset(27) = hi_dist_offset
 
 END SUBROUTINE calc_3d_offset
 
@@ -527,7 +531,7 @@ SUBROUTINE calc_3d_dim()
   sice007_dim_state = nx_global*ny_global*ncat
   qice007_dim_state = nx_global*ny_global*ncat
   qsno001_dim_state = nx_global*ny_global*ncat
-  hin_dim_state = nx_global*ny_global*ncat
+  hi_dist_dim_state = nx_global*ny_global*ncat
 
   ! Fill  array of state variable dimensions
   var3d_dim_state(1) = aicen_dim_state
@@ -556,7 +560,7 @@ SUBROUTINE calc_3d_dim()
   var3d_dim_state(24) = qice007_dim_state
   var3d_dim_state(25) = sice007_dim_state
   var3d_dim_state(26) = qsno001_dim_state
-  var3d_dim_state(27) = hin_dim_state
+  var3d_dim_state(27) = hi_dist_dim_state
 
 END SUBROUTINE calc_3d_dim
 
@@ -800,13 +804,13 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
         cnt = (/ nx_global , ny_global , ncat /)
         s = s + 1
 
-        IF (id3d_list(idx) .NE. 'hin') THEN
+        IF (id3d_list(idx) .NE. 'hi_dist') THEN
            stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, var3d, start=pos, count=cnt)
         ELSE
            var3d(:,:,:)=0.0
         END IF
 
-        IF (id3d_list(idx) .NE. 'hin') THEN
+        IF (id3d_list(idx) .NE. 'hi_dist') THEN
            DO i = 1, s
               IF (stat(i) .NE. NF90_NOERR) THEN
                  WRITE(*,'(/9x, a, 3x, a)') &
@@ -1293,7 +1297,7 @@ SUBROUTINE fill3d_statevector(dim_p, state_p)
      DO j = 1,ny_global
         DO i = 1,nx_global
            state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                hin_offset) = hin(i+1,j+1,k)
+                hi_dist_offset) = hi_dist(i+1,j+1,k)
         END DO
      END DO
   END DO
@@ -1717,9 +1721,9 @@ SUBROUTINE distrib3d_statevector(dim_p, state_p)
   DO k =1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-           hin(i+1,j+1,k) = &
+           hi_dist(i+1,j+1,k) = &
                 state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                hin_offset)
+                hi_dist_offset)
         END DO
      END DO
   END DO
@@ -2178,6 +2182,7 @@ SUBROUTINE physics_check()
      END DO
   END DO
 
+
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
@@ -2325,26 +2330,26 @@ SUBROUTINE physics_check()
               IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -1.9) THEN
                  trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.9
               END IF
-	      IF (trcrn(i+1,j+1,nt_sice,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice,k,1) = 0.2
 	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+1,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice+1,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice+1,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+1,k,1) = 0.2
 	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+2,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice+2,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice+2,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+2,k,1) = 0.2
 	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+3,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice+3,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice+3,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+3,k,1) = 0.2
 	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+4,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice+4,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice+4,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+4,k,1) = 0.2
 	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+5,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice+5,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice+5,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+5,k,1) = 0.2
 	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+6,k,1) <= 0.11) THEN
-	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.11
+	      IF (trcrn(i+1,j+1,nt_sice+6,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.2
 	      END IF
 	   END IF
         END DO
