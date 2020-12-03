@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_netf_update.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_netf_update.F90 521 2020-10-04 16:10:15Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_netf_update --- Control analysis update of the NETF
@@ -51,7 +51,7 @@ SUBROUTINE  PDAF_netf_update(step, dim_p, dim_obs_p, dim_ens, &
   USE PDAF_memcounting, &
        ONLY: PDAF_memcount
   USE PDAF_mod_filter, &
-       ONLY: type_trans
+       ONLY: type_trans, type_winf, limit_winf
   USE PDAF_mod_filtermpi, &
        ONLY: mype, dim_ens_l
 
@@ -182,9 +182,10 @@ SUBROUTINE  PDAF_netf_update(step, dim_p, dim_obs_p, dim_ens, &
 
   ! *** NETF analysis ***
   CALL PDAF_netf_analysis(step, dim_p, dim_obs_p, dim_ens, &
-       state_p, ens_p, rndmat, Uinv, forget, &
+       state_p, ens_p, rndmat, Uinv, type_forget, forget, &
+       type_winf, limit_winf, &
        U_init_dim_obs, U_obs_op, U_init_obs, U_likelihood, &
-       screen, type_forget, flag)
+       screen, flag)
 
   ! *** Perform smoothing of past ensembles ***
   IF (dim_lag > 0) THEN

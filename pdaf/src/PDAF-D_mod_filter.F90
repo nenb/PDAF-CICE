@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_mod_filter.F90 421 2020-03-16 14:45:58Z lnerger $
+!$Id: PDAF-D_mod_filter.F90 523 2020-11-09 16:35:47Z lnerger $
 !BOP
 !
 ! !MODULE:
@@ -111,6 +111,9 @@ MODULE PDAF_mod_filter
   INTEGER :: type_sqrt=0   ! Type of sqrt of U in SEIK/LSEIK-trans or A in ESTKF/LESTKF
                            ! (0): symmetric sqrt; (1): Cholesky decomposition
                            ! In SEIK/LSEIK the default is 1
+  INTEGER :: type_winf=0   ! Type of weights inflation for NETF
+                           ! (0): none; (1) inflate for N_eff/N > limit_winf
+  REAL :: limit_winf = 0.0 ! Limit to weights inflation
   INTEGER :: dim_lag = 0   ! Number of past time instances considered for smoother
   INTEGER :: restype = 1   ! Resampling type for parficle filters
                            ! (1) probabilistic resampling, (2) stochastic universal resampling
@@ -151,6 +154,6 @@ MODULE PDAF_mod_filter
   REAL, ALLOCATABLE :: bias(:)      ! Model bias vector
 !EOP
 
-!$OMP THREADPRIVATE(cnt_maxlag)
+!$OMP THREADPRIVATE(cnt_maxlag, obs_member)
 
 END MODULE PDAF_mod_filter

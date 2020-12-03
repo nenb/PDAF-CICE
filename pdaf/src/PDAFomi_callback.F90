@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: callback_obs_pdafomi.F90 451 2020-05-24 08:26:18Z lnerger $
+!$Id: PDAFomi_callback.F90 591 2020-11-23 18:13:34Z lnerger $
 
 !> Generic PDAFomi callback routines
 !!

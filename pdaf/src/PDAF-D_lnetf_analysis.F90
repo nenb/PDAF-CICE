@@ -23,7 +23,8 @@
 SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
      dim_ens, ens_l, HX_f, rndmat, U_g2l_obs, &
      U_init_obs_l, U_likelihood_l, &
-     screen, type_forget, forget, cnt_small_svals, eff_dimens, T, flag)
+     screen, type_forget, forget, type_winf, limit_winf, &
+     cnt_small_svals, eff_dimens, T, flag)
 
 ! !DESCRIPTION:
 ! Analysis step of the LNETF.
@@ -50,6 +51,8 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
        ONLY: PDAF_memcount
   USE PDAF_mod_filtermpi, &
        ONLY: mype
+  USE PDAF_mod_filter, &
+       ONLY: obs_member
 #if defined (_OPENMP)
   USE omp_lib, &
        ONLY: omp_get_num_threads, omp_get_thread_num
@@ -73,6 +76,8 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   INTEGER, INTENT(in) :: screen      ! Verbosity flag
   INTEGER, INTENT(in) :: type_forget ! Typ eof forgetting factor
   REAL, INTENT(in) :: forget         ! Forgetting factor
+  INTEGER, INTENT(in) :: type_winf   ! Type of weights inflation
+  REAL, INTENT(in) :: limit_winf     ! Limit for weights inflation
   INTEGER, INTENT(inout) :: cnt_small_svals   ! Number of small eigen values
   REAL, INTENT(inout) :: eff_dimens(1)        ! Effective ensemble size
   REAL, INTENT(inout) :: T(dim_ens, dim_ens)  ! local ensemble transformation matrix
@@ -113,7 +118,8 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   REAL, ALLOCATABLE :: T_tmp(:,:)      ! Temporary matrix
   REAL, ALLOCATABLE :: weights(:)      ! weight vector
   INTEGER , SAVE :: lastdomain = -1    ! save domain index
-  REAL :: total_weight                 ! Sum of weight
+  REAL :: total_weight                 ! Sum of weights
+  INTEGER :: screen2 = 0               ! Screen flag accounting for screenout
   INTEGER, SAVE :: mythread, nthreads  ! Thread variables for OpenMP
 
 !$OMP THREADPRIVATE(mythread, nthreads, lastdomain, allocflag, screenout)
@@ -151,6 +157,12 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
 #endif
   END IF
 
+  IF (screen>0 .AND. screenout) THEN
+     screen2 = screen
+  ELSE
+     screen2 = 0
+  END IF
+
   CALL PDAF_timeit(51, 'new')
 
 
@@ -177,7 +189,10 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   ! Get residual as difference of observation and observed state for 
   ! each ensemble member only on domains where observations are availible
 
-  CALC_w: DO member = 1,dim_ens
+  CALC_w: DO member = 1, dim_ens
+
+     ! Store member index
+     obs_member = member
 
      ! Restrict global state to local state
      CALL PDAF_timeit(46, 'new')
@@ -194,6 +209,11 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
      weights(member) = weight
 
   END DO CALC_w
+
+  ! Compute inflation of weights according to N_eff/N>limit_winf
+  IF (type_winf == 1) THEN
+     CALL PDAF_inflate_weights(screen2, dim_ens, limit_winf, weights)
+  END IF
 
   CALL PDAF_timeit(51, 'new')
 
@@ -337,7 +357,7 @@ SUBROUTINE PDAF_lnetf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
   ! *** Perform ensemble transformation ***
   ! Use block formulation for transformation
   maxblksize = 200
-  IF (mype == 0 .AND. screen > 0 .AND. screenout) &
+  IF (mype == 0 .AND. screen2 > 0) &
        WRITE (*, '(a, 5x, a, i5)') &
        'PDAF', '--- use blocking with size ', maxblksize
 

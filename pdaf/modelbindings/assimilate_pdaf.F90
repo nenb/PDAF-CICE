@@ -15,7 +15,9 @@ SUBROUTINE assimilate_pdaf()
 ! 2013-08 - Lars Nerger - Initial code for NEMO
 ! Later revisions - see svn log
 !
-! !USES:
+  ! !USES:
+  USE pdaf_interfaces_module, &   ! Interface definitions to PDAF core routines
+       ONLY: PDAFomi_assimilate_local, PDAF_get_localfilter
   USE mod_parallel_pdaf, &     ! Parallelization variables
        ONLY: mype_world, abort_parallel
   USE mod_assimilation, &      ! Variables for assimilation
@@ -30,7 +32,7 @@ SUBROUTINE assimilate_pdaf()
 
 ! Local variables
   INTEGER :: status_pdaf       ! PDAF status flag
-
+  INTEGER :: localfilter          ! Flag for domain-localized filter (1=true)
 
   ! External subroutines
   ! Interface between model and PDAF, and prepoststep
@@ -45,8 +47,8 @@ SUBROUTINE assimilate_pdaf()
        l2g_state_pdaf                ! Update global state from state on local analysis domain
   ! Interface to PDAF-OMI for local and global filters
   EXTERNAL :: &
-       init_dim_obs_f_pdafomi, &     ! Get dimension of full obs. vector for PE-local domain
-       obs_op_f_pdafomi, &           ! Obs. operator for full obs. vector for PE-local domain
+       init_dim_obs_pdafomi, &     ! Get dimension of full obs. vector for PE-local domain
+       obs_op_pdafomi, &           ! Obs. operator for full obs. vector for PE-local domain
        init_dim_obs_l_pdafomi        ! Get dimension of obs. vector for local analysis domain
 
 
@@ -54,33 +56,21 @@ SUBROUTINE assimilate_pdaf()
 ! *** Call assimilation routine ***
 ! *********************************
 
-      IF (filtertype == 4) THEN
-!       CALL PDAF_assimilate_etkf(collect_state_pdaf, 
-!     &      distribute_state_pdaf, init_dim_obs_pdaf, obs_op_pdaf,
-!     &      init_obs_pdaf, prepoststep_ens_pdaf, prodRinvA_pdaf, 
-!     &      init_obsvar_pdaf, next_observation_pdaf, status_pdaf)
-      ELSE IF (filtertype == 5) THEN
-         CALL PDAF_assimilate_letkf_omi(collect_state_pdaf,&
-              distribute_state_pdaf, init_dim_obs_f_pdafomi, obs_op_f_pdafomi,&
-              prepoststep_ens_pdaf, init_n_domains_pdaf, init_dim_l_pdaf,&
-              init_dim_obs_l_pdafomi, g2l_state_pdaf, l2g_state_pdaf,&
-              next_observation_pdaf, status_pdaf)
-      ELSE IF (filtertype == 6) THEN
-!       CALL PDAF_assimilate_estkf(collect_state_pdaf, 
-!     &      distribute_state_pdaf, init_dim_obs_pdaf, obs_op_pdaf,
-!     &      init_obs_pdaf, prepoststep_ens_pdaf, prodRinvA_pdaf, 
-!     &      init_obsvar_pdaf, next_observation_pdaf, status_pdaf)
-      ELSEIF (filtertype == 7) THEN
-!       CALL PDAF_assimilate_lestkf(collect_state_pdaf, 
-!     &      distribute_state_pdaf, init_dim_obs_f_pdaf, obs_op_f_pdaf,
-!     &      init_obs_f_pdaf, init_obs_l_pdaf, prepoststep_ens_pdaf, 
-!     &      prodRinvA_l_pdaf, init_n_domains_pdaf, init_dim_l_pdaf, 
-!     &      init_dim_obs_l_pdaf, g2l_state_pdaf, l2g_state_pdaf, 
-!     &      g2l_obs_pdaf, init_obsvar_pdaf, init_obsvar_l_pdaf,
-!     &      next_observation_pdaf, status_pdaf)
-      END IF
+  ! Check  whether the filter is domain-localized
+  CALL PDAF_get_localfilter(localfilter)
 
-  
+  IF (localfilter==1) THEN
+     CALL PDAFomi_assimilate_local(collect_state_pdaf,&
+          distribute_state_pdaf, init_dim_obs_pdafomi, obs_op_pdafomi,&
+          prepoststep_ens_pdaf, init_n_domains_pdaf, init_dim_l_pdaf,&
+          init_dim_obs_l_pdafomi, g2l_state_pdaf, l2g_state_pdaf,&
+          next_observation_pdaf, status_pdaf)
+  ELSE
+     WRITE (*,'(a)') 'ERROR - global filter not implemented, stopping.'
+     CALL  abort_parallel()
+  END IF
+
+
 ! Check for errors during execution of PDAF
   IF (status_pdaf /= 0) THEN
      WRITE (*,'(/1x,a6,i3,a43,i4,a1/)') &

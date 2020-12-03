@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_enkf_analysis_rlm.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_enkf_analysis_rlm.F90 564 2020-11-21 10:02:35Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_enkf_analysis_rlm --- Perform EnKF analysis step
@@ -484,6 +484,8 @@ SUBROUTINE PDAF_enkf_analysis_rlm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
            
         END DO blocking1
 
+        DEALLOCATE(XminMean_b)
+
         CALL PDAF_timeit(16, 'old')
 
      ELSE
@@ -573,6 +575,8 @@ SUBROUTINE PDAF_enkf_analysis_rlm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
            
         END DO blocking2
 
+        DEALLOCATE(XminMean_b)
+
         CALL PDAF_timeit(16, 'old')
 
      END IF update
@@ -589,7 +593,7 @@ SUBROUTINE PDAF_enkf_analysis_rlm(step, dim_p, dim_obs_p, dim_ens, rank_ana, &
 ! ********************
 
   ! Clean up
-  DEALLOCATE(XminMean_b, HX)
+  DEALLOCATE(HX)
   DEALLOCATE(resid)
   DEALLOCATE(HPH)
 

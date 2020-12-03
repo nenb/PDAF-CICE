@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_lestkf_analysis.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_lestkf_analysis.F90 523 2020-11-09 16:35:47Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_lestkf_analysis --- LESTKF analysis/transformation
@@ -56,6 +56,8 @@ SUBROUTINE PDAF_lestkf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
        ONLY: PDAF_memcount
   USE PDAF_mod_filtermpi, &
        ONLY: mype
+  USE PDAF_mod_filter, &
+       ONLY: obs_member
 #if defined (_OPENMP)
   USE omp_lib, &
        ONLY: omp_get_num_threads, omp_get_thread_num
@@ -199,6 +201,7 @@ SUBROUTINE PDAF_lestkf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
 
      ! Restrict mean obs. state onto local observation space
      CALL PDAF_timeit(46, 'new')
+     obs_member = 0
      CALL U_g2l_obs(domain_p, step, dim_obs_f, dim_obs_l, HXbar_f, HXbar_l)
      CALL PDAF_timeit(46, 'old')
 
@@ -240,6 +243,9 @@ SUBROUTINE PDAF_lestkf_analysis(domain_p, step, dim_l, dim_obs_f, dim_obs_l, &
      CALL PDAF_timeit(46, 'new')
 
      ENS: DO member = 1, dim_ens
+        ! Store member index
+        obs_member = member
+
         ! [Hx_1 ... Hx_(r+1)] for local analysis domain
         CALL U_g2l_obs(domain_p, step, dim_obs_f, dim_obs_l, HX_f(:, member), &
              HL_l(:, member))

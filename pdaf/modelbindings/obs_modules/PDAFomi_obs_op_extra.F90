@@ -2,7 +2,7 @@ MODULE PDAFomi_obs_op_extra
 !-------------------------------------------------------------------------------
 ! Extra observation operators required for CICE
 
-  USE PDAFomi_obs_f, ONLY: obs_f, PDAFomi_gather_obsstate_f
+  USE PDAFomi_obs_f, ONLY: obs_f, PDAFomi_gather_obsstate
 
 CONTAINS
 
@@ -12,7 +12,7 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-  SUBROUTINE PDAFomi_obs_op_f_ice_concen(thisobs, nrows, state_p, obs_f_all, offset_obs)
+  SUBROUTINE PDAFomi_obs_op_ice_concen(thisobs, nrows, state_p, obs_f_all)
 
     USE ice_constants, &
          ONLY: c0, puny
@@ -24,7 +24,6 @@ CONTAINS
     INTEGER, INTENT(in) :: nrows           !< Number of values to be summed
     REAL, INTENT(in)    :: state_p(:)      !< PE-local model state (dim_p)
     REAL, INTENT(inout) :: obs_f_all(:)    !< Full observed state for all observation types (nobs_f_all)
-    INTEGER, INTENT(inout) :: offset_obs   !< Offset of current observation in overall observation vector
 
 ! *** Local variables ***
     INTEGER :: i, row                  ! Counter
@@ -40,7 +39,7 @@ CONTAINS
     doassim: IF (thisobs%doassim == 1) THEN
 
        IF (.NOT.ALLOCATED(thisobs%id_obs_p)) THEN
-          WRITE (*,*) 'ERROR: PDAFomi_obs_op_f_ice_concen - thisobs%id_obs_p is not allocated'
+          WRITE (*,*) 'ERROR: PDAFomi_obs_op_ice_concen - thisobs%id_obs_p is not allocated'
        END IF
 
        ! *** PE-local: Initialize observed part state vector by averaging
@@ -67,17 +66,14 @@ CONTAINS
           END IF
        ENDDO
 
-       ! *** Store offset (mandatory!)
-       thisobs%off_obs_f = offset_obs
-
        ! *** Global: Gather full observed state vector
-       CALL PDAFomi_gather_obsstate_f(thisobs, ostate_p, obs_f_all, offset_obs)
+       CALL PDAFomi_gather_obsstate(thisobs, ostate_p, obs_f_all)
 
        ! *** Clean up
        DEALLOCATE(ostate_p, ostate1_p)
 
     END IF doassim
 
-  END SUBROUTINE PDAFomi_obs_op_f_ice_concen
+  END SUBROUTINE PDAFomi_obs_op_ice_concen
 
 END MODULE PDAFomi_obs_op_extra

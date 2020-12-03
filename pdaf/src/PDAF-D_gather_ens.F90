@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_gather_ens.F90 374 2020-02-26 12:49:56Z lnerger $
+!$Id: PDAF-D_gather_ens.F90 526 2020-11-10 15:16:41Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_gather_ens --- Gather distributed ensemble on filter PEs
@@ -44,7 +44,7 @@ SUBROUTINE PDAF_gather_ens(dim_p, dim_ens_p, eofV, screen)
   USE PDAF_mod_filtermpi, &
        ONLY: mype_filter, mype_couple, npes_couple, filterpe, &
        all_dim_ens_l, all_dis_ens_l, COMM_couple, MPI_REALTYPE, MPIerr, &
-       filter_no_model, MPI_STATUS_SIZE
+       filter_no_model, MPI_STATUS_SIZE, MPIstatus
   USE PDAF_timer, &
        ONLY: PDAF_timeit, PDAF_time_temp
 

@@ -162,10 +162,10 @@ CONTAINS
 !! can include modules from the model with 'use', e.g. for mesh information.
 !! Alternatively one could include these as subroutine arguments
 !!
-  SUBROUTINE init_dim_obs_f_ice_hi_dist(step, dim_obs_f)
+  SUBROUTINE init_dim_obs_ice_hi_dist(step, dim_obs)
 
-    USE PDAFomi_obs_f, &
-         ONLY: PDAFomi_gather_obs_f
+    USE PDAFomi, &
+         ONLY: PDAFomi_gather_obs
     USE mod_assimilation, &
          ONLY: filtertype, local_range
     USE netcdf
@@ -184,7 +184,7 @@ CONTAINS
 
     ! *** Arguments ***
     INTEGER, INTENT(in)    :: step       !< Current time step
-    INTEGER, INTENT(inout) :: dim_obs_f  !< Dimension of full observation vector
+    INTEGER, INTENT(inout) :: dim_obs  !< Dimension of full observation vector
 
     ! *** Local variables ***
     INTEGER :: s, i, j, k                  ! Counters
@@ -386,11 +386,11 @@ CONTAINS
        END DO
     END DO
     dim_obs_p = cnt
-    dim_obs_f = cnt
+    dim_obs = cnt
 
 
     IF (mype_filter==0) &
-         WRITE (*,'(8x, a, i6)') '--- number of full observations', dim_obs_f
+         WRITE (*,'(8x, a, i6)') '--- number of full observations', dim_obs
 
 
     ! *** Initialize vector of observations on the process sub-domain ***
@@ -495,8 +495,8 @@ CONTAINS
     ! This routine is generic for the case that only the observations, 
     ! inverse variances and observation coordinates are gathered
 
-    CALL PDAFomi_gather_obs_f(thisobs, dim_obs_p, obs_p, ivar_obs_p, ocoord_p, &
-         thisobs%ncoord, local_range, dim_obs_f)
+    CALL PDAFomi_gather_obs(thisobs, dim_obs_p, obs_p, ivar_obs_p, ocoord_p, &
+         thisobs%ncoord, local_range, dim_obs)
 
 ! ********************
 ! *** Finishing up ***
@@ -510,7 +510,7 @@ CONTAINS
     ! Arrays in THISOBS have to be deallocated after the analysis step
     ! by a call to deallocate_obs() in prepoststep_pdaf.
 
-  END SUBROUTINE init_dim_obs_f_ice_hi_dist
+  END SUBROUTINE init_dim_obs_ice_hi_dist
 
 
 
@@ -541,10 +541,10 @@ CONTAINS
 !!
 !! The routine is called by all filter processes.
 !!
-  SUBROUTINE obs_op_f_ice_hi_dist(dim_p, dim_obs_f, state_p, ostate_f, offset_obs)
+  SUBROUTINE obs_op_ice_hi_dist(dim_p, dim_obs, state_p, ostate)
 
     USE PDAFomi, &
-         ONLY: PDAFomi_obs_op_f_gridpoint
+         ONLY: PDAFomi_obs_op_gridpoint
     USE ice_domain_size, &
          ONLY: ncat
 
@@ -552,11 +552,9 @@ CONTAINS
 
 ! *** Arguments ***
     INTEGER, INTENT(in) :: dim_p                 !< PE-local state dimension
-    INTEGER, INTENT(in) :: dim_obs_f             !< Dimension of full observed state (all observed fields)
+    INTEGER, INTENT(in) :: dim_obs             !< Dimension of full observed state (all observed fields)
     REAL, INTENT(in)    :: state_p(dim_p)        !< PE-local model state
-    REAL, INTENT(inout) :: ostate_f(dim_obs_f)   !< Full observed state
-    INTEGER, INTENT(inout) :: offset_obs         !< input: offset of module-type observations in ostate_f
-                                                 !< output: input + number of added observations
+    REAL, INTENT(inout) :: ostate(dim_obs)   !< Full observed state
 
 
 ! ******************************************************
@@ -569,11 +567,11 @@ CONTAINS
        !+++  module PDAFomi_obs_op or implement your own
 
        ! observation operator for observed grid point values
-       CALL PDAFomi_obs_op_f_gridpoint(thisobs, state_p, ostate_f, offset_obs)
+       CALL PDAFomi_obs_op_gridpoint(thisobs, state_p, ostate)
 
     END IF
 
-  END SUBROUTINE obs_op_f_ice_hi_dist
+  END SUBROUTINE obs_op_ice_hi_dist
 
 !-------------------------------------------------------------------------------
 !> Initialize local information on the module-type observation
@@ -591,8 +589,7 @@ CONTAINS
 !! different localization radius and localization functions
 !! for each observation type and  local analysis domain.
 !!
-  SUBROUTINE init_dim_obs_l_ice_hi_dist(domain_p, step, dim_obs_f, dim_obs_l, &
-       off_obs_l, off_obs_f)
+  SUBROUTINE init_dim_obs_l_ice_hi_dist(domain_p, step, dim_obs, dim_obs_l)
 
     ! Include PDAFomi function
     USE PDAFomi, ONLY: PDAFomi_init_dim_obs_l
@@ -606,19 +603,15 @@ CONTAINS
 ! *** Arguments ***
     INTEGER, INTENT(in)  :: domain_p     !< Index of current local analysis domain
     INTEGER, INTENT(in)  :: step         !< Current time step
-    INTEGER, INTENT(in)  :: dim_obs_f    !< Full dimension of observation vector
+    INTEGER, INTENT(in)  :: dim_obs    !< Full dimension of observation vector
     INTEGER, INTENT(out) :: dim_obs_l    !< Local dimension of observation vector
-    INTEGER, INTENT(inout) :: off_obs_l  !< Offset in local observation vector
-    INTEGER, INTENT(inout) :: off_obs_f  !< Offset in full observation vector
-
 
 ! **********************************************
 ! *** Initialize local observation dimension ***
 ! **********************************************
 
     CALL PDAFomi_init_dim_obs_l(thisobs_l, thisobs, coords_l, &
-         locweight, local_range, srange, &
-         dim_obs_l, off_obs_l, off_obs_f)
+         locweight, local_range, srange, dim_obs_l)
 
   END SUBROUTINE init_dim_obs_l_ice_hi_dist
   

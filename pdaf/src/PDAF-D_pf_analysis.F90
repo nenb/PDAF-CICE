@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAF-D_pf_analysis.F90 496 2020-06-09 15:26:17Z lnerger $
+!$Id: PDAF-D_pf_analysis.F90 527 2020-11-11 14:49:15Z lnerger $
 !BOP
 !
 ! !ROUTINE: PDAF_pf_analysis --- PF analysis with resampling
@@ -49,6 +49,8 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
        ONLY: PDAF_memcount
   USE PDAF_mod_filtermpi, &
        ONLY: mype
+  USE PDAF_mod_filter, &
+       ONLY: obs_member
 
   IMPLICIT NONE
 
@@ -150,6 +152,9 @@ SUBROUTINE PDAF_pf_analysis(step, dim_p, dim_obs_p, dim_ens, &
 
      ! Get residual as difference of observation and observed state for each ensemble member
      CALC_w: DO member = 1, dim_ens
+
+        ! Store member index
+        obs_member = member
 
         CALL PDAF_timeit(44, 'new')
         CALL U_obs_op(step, dim_p, dim_obs_p, ens_p(:, member), resid_i)

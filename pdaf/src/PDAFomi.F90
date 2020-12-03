@@ -1,4 +1,4 @@
-! Copyright (c) 2004-2019 Lars Nerger
+! Copyright (c) 2004-2020 Lars Nerger
 !
 ! This file is part of PDAF.
 !
@@ -15,7 +15,7 @@
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with PDAF.  If not, see <http://www.gnu.org/licenses/>.
 !
-!$Id: PDAFomi_obs_l.F90 333 2019-12-31 16:19:13Z lnerger $
+!$Id: PDAFomi.F90 591 2020-11-23 18:13:34Z lnerger $
 
 !> PDAF-OMI main module
 !!
