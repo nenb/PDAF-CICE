@@ -52,9 +52,9 @@ MODULE obs_ice_hi_dist_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_hi_dist=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_hi_dist=.FALSE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_hi_dist=0.1      !< Observation error standard deviation (for constant errors)
+  REAL    :: rms_ice_hi_dist=0.4      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can

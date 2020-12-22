@@ -52,7 +52,7 @@ MODULE obs_ice_hi_m_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_hi_m=.FALSE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_hi_m=.TRUE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_hi_m=0.4      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
@@ -64,7 +64,7 @@ MODULE obs_ice_hi_m_pdafomi
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 1980                 ! Set to first year of assim
+  INTEGER :: year = 2012                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -238,7 +238,23 @@ CONTAINS
     ELSE
        mon=monthp
        day=daymo(mon)
-       end_of_month = .TRUE.
+       IF (mon == 1) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 2) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 3) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 4) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 10) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 11) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 12) THEN
+          end_of_month = .TRUE.
+       ELSE
+          end_of_month = .FALSE.
+       END IF
     END IF
 
     ! *******************************

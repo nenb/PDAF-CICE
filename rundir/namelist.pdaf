@@ -9,7 +9,7 @@
  delt_obs=24,
  screen=2,
  type_forget=0,
- forget=1.0,
+ forget=0.94,
  local_range=200000.0,
  locweight=2,
  srange=200000.0,

@@ -2259,8 +2259,8 @@ SUBROUTINE physics_check()
         END DO
         IF (icetotal > c1) THEN
            aicen(i+1,j+1,1:ncat,1) = aicen(i+1,j+1,1:ncat,1)/icetotal
-           !vicen(i+1,j+1,1:ncat,1) = vicen(i+1,j+1,1:ncat,1)/icetotal
-           !vsnon(i+1,j+1,1:ncat,1) = vsnon(i+1,j+1,1:ncat,1)/icetotal
+           vicen(i+1,j+1,1:ncat,1) = vicen(i+1,j+1,1:ncat,1)/icetotal
+           vsnon(i+1,j+1,1:ncat,1) = vsnon(i+1,j+1,1:ncat,1)/icetotal
         END IF
      END DO
   END DO
@@ -2270,7 +2270,8 @@ SUBROUTINE physics_check()
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-           IF (aicen(i+1,j+1,k,1) < puny) THEN
+           !!! Keeping the minimum aicen this high stops ice spikes from forming !
+           IF (aicen(i+1,j+1,k,1) < 0.01) THEN !(change puny to 0.0001 to fix)
               aicen(i+1,j+1,k,1) = c0
               vsnon(i+1,j+1,k,1) = c0
               vicen(i+1,j+1,k,1) = c0
