@@ -18,16 +18,21 @@ SUBROUTINE assimilate_pdaf()
   ! !USES:
   USE pdaf_interfaces_module, &   ! Interface definitions to PDAF core routines
        ONLY: PDAFomi_assimilate_local, PDAF_get_localfilter
-  USE mod_parallel_pdaf, &     ! Parallelization variables
+  USE mod_parallel_pdaf, &
        ONLY: mype_world, abort_parallel
-  USE mod_assimilation, &      ! Variables for assimilation
-       ONLY: filtertype
+  USE mod_assimilation, &
+       ONLY: filtertype, dim_state_p
+  USE mod_iau, &
+       ONLY: apply_inc, check_iau_apply, state_inc, iau_switch, &
+       iau_apply
 
   IMPLICIT NONE
 
 ! !CALLING SEQUENCE:
 ! Called by: step
-! CAlls: PDAF_assimilate_X
+! Calls: PDAF_get_localfilter
+! Calls: PDAFomi_assimilate_local
+! Calls: distribute_inc (if IAU enabled)
 !EOP
 
 ! Local variables
@@ -70,13 +75,22 @@ SUBROUTINE assimilate_pdaf()
      CALL  abort_parallel()
   END IF
 
-
-! Check for errors during execution of PDAF
+  ! Check for errors during execution of PDAF
   IF (status_pdaf /= 0) THEN
      WRITE (*,'(/1x,a6,i3,a43,i4,a1/)') &
           'ERROR ', status_pdaf, &
           ' in PDAF_put_state - stopping! (PE ', mype_world,')'
      CALL  abort_parallel()
+  END IF
+
+  ! Check whether to apply updates for IAU
+  IF (iau_switch) THEN
+     ! Determine whether IAU applied on this step or not
+     ! NOTE: Distinct to check_iau_compute!
+     CALL check_iau_apply(iau_apply)
+     IF (iau_apply) THEN
+        CALL apply_inc(dim_state_p, state_inc)
+     END IF
   END IF
 
 END SUBROUTINE assimilate_pdaf

@@ -16,6 +16,8 @@ SUBROUTINE finalize_pdaf()
 ! !USES:
   USE mod_parallel_pdaf, &
        ONLY: finalize_parallel, mype_world
+  USE mod_cleanup, &
+       ONLY: PDAF_CICE_deallocate
 
   IMPLICIT NONE    
   
@@ -31,6 +33,7 @@ SUBROUTINE finalize_pdaf()
 
 ! *** Deallocate PDAF arrays
   CALL PDAF_deallocate()
+  CALL PDAF_CICE_deallocate()
 
 ! *** Finalize parallel MPI region ***
   CALL finalize_parallel()

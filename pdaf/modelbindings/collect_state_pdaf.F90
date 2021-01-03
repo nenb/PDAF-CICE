@@ -28,9 +28,12 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 !
   ! !USES:
    USE mod_statevector, &
-       ONLY: fill2d_statevector, fill3d_statevector, calc_hi_average
-  
-  IMPLICIT NONE
+        ONLY: fill2d_statevector, fill3d_statevector, calc_hi_average
+   USE mod_iau, &
+        ONLY: init_statevector_inc, state_inc, iau_switch, iau_compute, &
+        check_iau_compute
+
+   IMPLICIT NONE
   
 ! !ARGUMENTS:
   INTEGER, INTENT(in) :: dim_p           ! PE-local state dimension
@@ -40,18 +43,17 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! Called by: PDAF_put_state_X    (as U_coll_state)
 ! Called by: PDAF_assimilate_X   (as U_coll_state)
 ! Call Xfill_statevector
+! Call check_iau_compute         (if IAU enabled)
+! Call init_statevector_inc      (if IAU enabled)
 !EOP
 
-! *** local variables ***
 
-
-! ********************************************* 
+! *********************************************
 ! *** Calculations prior to sending to PDAF ***
 ! *********************************************
 
   ! Compute monthly-mean ice thickness
   CALL calc_hi_average()
-
 
 ! *******************************************
 ! *** Fill state vector from model fields ***
@@ -60,4 +62,15 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
   CALL fill2d_statevector(dim_p, state_p)
   CALL fill3d_statevector(dim_p, state_p)
 
-END SUBROUTINE collect_state_pdaf
+  ! Computations for IAU statevector
+  IF (iau_switch) THEN
+     ! Determine whether IAU computed on this step or not
+     ! NOTE: Distinct to check_iau_apply!
+     CALL check_iau_compute(iau_compute)
+     IF (iau_compute) THEN
+        ! Initialise statevector increment with model forecast
+        CALL init_statevector_inc(dim_p, state_inc, state_p)
+     END IF
+  END IF
+
+ END SUBROUTINE collect_state_pdaf

@@ -14,5 +14,7 @@
  locweight=2,
  srange=200000.0,
  rms_ice_concen=0.1,
+ iau_switch=.true.,
+ iau_timesteps=12,
  file_asml='/storage/silver/cpom/fm828007/exp2_assim_conc.nc'
 /

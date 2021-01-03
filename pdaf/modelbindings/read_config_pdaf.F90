@@ -15,9 +15,11 @@ SUBROUTINE read_config_pdaf()
   USE mod_parallel_pdaf, &
        ONLY: mype_world
   USE mod_assimilation, &
-       ONLY: filtertype, subtype, dim_ens, delt_obs, screen,&
-       type_forget, forget, local_range, locweight, srange,&
+       ONLY: filtertype, subtype, dim_ens, delt_obs, screen, &
+       type_forget, forget, local_range, locweight, srange, &
        istate_dir
+  USE mod_iau, &
+       ONLY: iau_switch, iau_timesteps
   USE obs_ice_concen_pdafomi, &
        ONLY: rms_ice_concen
   USE output_netcdf_asml, &
@@ -29,10 +31,10 @@ SUBROUTINE read_config_pdaf()
 ! Local variables
   CHARACTER(len=100) :: nmlfile   ! name of namelist file
 
-  NAMELIST /pdaf_nml/ istate_dir, filtertype, subtype, dim_ens,& 
+  NAMELIST /pdaf_nml/ istate_dir, filtertype, subtype, dim_ens,&
        delt_obs, screen, type_forget, forget,&
        local_range, locweight, srange, rms_ice_concen,&
-       file_asml
+       iau_switch, iau_timesteps, file_asml
 
 ! ****************************************************
 ! ***   Initialize PDAF parameters from namelist   ***
@@ -62,6 +64,8 @@ SUBROUTINE read_config_pdaf()
     WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
     WRITE (*,'(5x,a,es10.2)') 'rms_ice_concen    ', rms_ice_concen
     WRITE (*,'(5x,a,a)')      'istate_dir   ', istate_dir
+    WRITE (*,'(5x,a,i10)')    'iau_timesteps     ', iau_timesteps
+    WRITE (*,'(5x,a,l)')      'iau_switch   ', iau_switch
     WRITE (*,'(5x,a,a)')      'file_asml    ', file_asml
     WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 

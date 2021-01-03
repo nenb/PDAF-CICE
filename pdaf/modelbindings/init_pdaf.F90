@@ -29,7 +29,11 @@ SUBROUTINE init_pdaf()
        dim_ens, rms_obs, incremental, covartype, type_forget, &
        forget, rank_analysis_enkf, locweight, local_range, srange, &
        filename, type_trans, type_sqrt, delt_obs
-  USE mod_statevector ! Routines and variables for state vector
+  USE mod_iau, &
+       ONLY:  state_inc, iau_switch, iau_timesteps, iau_compute, &
+       iau_apply
+  USE mod_statevector, &
+       ONLY: calc_statevector_dim
   USE obs_ice_concen_pdafomi, &
        ONLY: rms_ice_concen
   USE output_netcdf_asml, &
@@ -143,13 +147,17 @@ SUBROUTINE init_pdaf()
   srange = local_range  ! Support range for 5th-order polynomial
                     ! or range for 1/e for exponential weighting
   file_asml = './asml.nc'
- 
+  iau_switch = .FALSE.   ! Control if IAU performed or not
+  iau_compute = .FALSE.  ! Control whether IAU computed on given timestep
+  iau_apply = .FALSE.    ! Control whether IAU applied on given timestep
+  iau_timesteps = 1.0    ! Number of timesteps IAU is spread over
+
 ! *** Read namelist file for PDAF ***
   CALL read_config_pdaf()
 
 ! *** Initial Screen output ***
 ! *** This is optional      ***
-  IF (mype_world == 0) call init_pdaf_info()
+  IF (mype_world == 0) CALL init_pdaf_info()
 
 
 ! *****************************************************
@@ -207,6 +215,10 @@ SUBROUTINE init_pdaf()
      CALL abort_parallel()
   END IF
 
+  IF (iau_switch) THEN
+     ! Initialize IAU statevector
+     ALLOCATE(state_inc(dim_state_p))
+  ENDIF
 
 ! ******************************'***
 ! *** Prepare ensemble forecasts ***

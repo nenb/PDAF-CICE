@@ -34,11 +34,13 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 !
 ! !USES:
   USE mod_statevector, &
-       ONLY: distrib2d_statevector, distrib3d_statevector, &
-       physics_check
+       ONLY: distrib2d_statevector, distrib3d_statevector, physics_check
+  USE mod_iau, &
+        ONLY: compute_statevector_inc, state_inc, iau_switch, iau_compute, &
+        check_iau_compute
   USE ice_blocks, &
        ONLY: nx_block, ny_block
-  USE ice_itd, &       ! Update CICE aggregate quantities
+  USE ice_itd, &
        ONLY: aggregate
   USE ice_grid, &
        ONLY: tmask
@@ -46,7 +48,7 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
        ONLY: nblocks
   USE ice_domain_size, &
        ONLY: nx_global, ny_global, ncat, max_ntrcr
-  USE ice_state        ! Variables required for aggregate subroutine
+  USE ice_state ! Variables required for aggregate subroutine
 
   IMPLICIT NONE
   
@@ -57,6 +59,8 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! !CALLING SEQUENCE:
 ! Called by: PDAF_get_state      (as U_dist_state)
 ! Called by: PDAF_assimilate_X   (as U_coll_state)
+! Calls: check_iau_compute       (if IAU enabled)
+! Calls: compute_statevector_inc (if IAU enabled)
 ! Calls: distribX_statevector
 !EOP
 
@@ -68,8 +72,23 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! *** Distribute model fields from state  ***
 !********************************************
 
-  CALL distrib2d_statevector(dim_p, state_p)
-  CALL distrib3d_statevector(dim_p, state_p)
+  ! Computations for IAU statevector
+  iau:IF (iau_switch) THEN
+     ! Determine whether IAU computed on this step or not
+     ! NOTE: Distinct to check_iau_apply!
+     CALL check_iau_compute(iau_compute)
+     IF (iau_compute) THEN
+        ! NOTE: IAU is applied in assimilate_pdaf
+        CALL compute_statevector_inc(dim_p, state_inc, state_p)
+     ELSE
+        ! Apply update as normal for non-IAU timesteps
+        CALL distrib2d_statevector(dim_p, state_p)
+        CALL distrib3d_statevector(dim_p, state_p)
+     END IF
+  ELSE iau
+     CALL distrib2d_statevector(dim_p, state_p)
+     CALL distrib3d_statevector(dim_p, state_p)
+  END IF iau
 
 ! ******************************************
 ! *** Adjustments after distribute state ***
