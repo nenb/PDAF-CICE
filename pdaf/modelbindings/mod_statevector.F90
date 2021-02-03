@@ -21,6 +21,8 @@ MODULE mod_statevector
   REAL, DIMENSION (nx_global+2,ny_global+2,ncat) :: hi_d
   REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_m
   REAL, DIMENSION (nx_global+2,ny_global+2) :: hi_grid_d
+  REAL, DIMENSION (nx_global+2,ny_global+2) :: frb_grid_d
+  REAL, DIMENSION (nx_global+2,ny_global+2) :: frb_m
 
 ! 2d state vector variables - start index
   INTEGER :: uvel_offset
@@ -39,6 +41,7 @@ MODULE mod_statevector
   INTEGER :: stress12_4_offset
   INTEGER :: sst_offset
   INTEGER :: hi_m_offset
+  INTEGER :: frb_m_offset
 #ifdef USE_STRESS
   INTEGER :: a11_1_offset
   INTEGER :: a11_2_offset
@@ -52,9 +55,9 @@ MODULE mod_statevector
 
 ! Array holding 2d state variable offsets
 #ifdef USE_STRESS
-  INTEGER :: var2d_offset(24)
+  INTEGER :: var2d_offset(25)
 #else
-  INTEGER :: var2d_offset(16)
+  INTEGER :: var2d_offset(17)
 #endif
 
 ! 2d state vector variables - dimension size
@@ -74,6 +77,7 @@ MODULE mod_statevector
   INTEGER :: stress12_4_dim_state
   INTEGER :: sst_dim_state
   INTEGER :: hi_m_dim_state
+  INTEGER :: frb_m_dim_state
 #ifdef USE_STRESS
   INTEGER :: a11_1_dim_state
   INTEGER :: a11_2_dim_state
@@ -87,9 +91,9 @@ MODULE mod_statevector
 
 ! Array holding 2d state variable dimensions
 #ifdef USE_STRESS
-  INTEGER :: var2d_dim_state(24)
+  INTEGER :: var2d_dim_state(25)
 #else
-  INTEGER :: var2d_dim_state(16)
+  INTEGER :: var2d_dim_state(17)
 #endif
 
 ! 3d state vector variables - start index
@@ -158,9 +162,9 @@ MODULE mod_statevector
 
 ! Array for 2d/3d state variable .NC ids
 #ifdef USE_STRESS
-  CHARACTER(len=20), DIMENSION(24) :: id2d_list
+  CHARACTER(len=20), DIMENSION(25) :: id2d_list
 #else
-  CHARACTER(len=20), DIMENSION(16) :: id2d_list
+  CHARACTER(len=20), DIMENSION(17) :: id2d_list
 #endif
   CHARACTER(len=20), DIMENSION(27) :: id3d_list
 
@@ -169,14 +173,14 @@ MODULE mod_statevector
   DATA id2d_list / 'uvel', 'vvel', 'stressp_1', 'stressp_2',&
        'stressp_3', 'stressp_4', 'stressm_1', 'stressm_2',&
        'stressm_3', 'stressm_4', 'stress12_1', 'stress12_2',&
-       'stress12_3', 'stress12_4', 'sst', 'hi_m',  'a11_1', 'a11_2',&
+       'stress12_3', 'stress12_4', 'sst', 'hi_m', 'frb_m', 'a11_1', 'a11_2',&
        'a11_3', 'a11_4',  'a12_1', 'a12_2', 'a12_3',&
        'a11_2' /
 #else
   DATA id2d_list / 'uvel', 'vvel', 'stressp_1', 'stressp_2',&
        'stressp_3', 'stressp_4', 'stressm_1', 'stressm_2',&
        'stressm_3', 'stressm_4', 'stress12_1', 'stress12_2',&
-       'stress12_3', 'stress12_4', 'sst', 'hi_m' /
+       'stress12_3', 'stress12_4', 'sst', 'hi_m', 'frb_m' /
 #endif
 
 ! Fill array of 3d state variable .NC ids
@@ -197,15 +201,15 @@ SUBROUTINE calc_hi_average()
 ! monthly mean ice thickness.
 
   USE ice_calendar, ONLY: daymo, mday, monthp
-  USE ice_state, ONLY: aicen,vicen
-  USE ice_constants, ONLY: c0, puny
+  USE ice_state, ONLY: aicen,vicen,vsnon
+  USE ice_constants, ONLY: c0, puny, rhow, rhoi, rhos
 
   IMPLICIT NONE
 
   INTEGER :: i, j, k ! Counters
   INTEGER :: true_day ! Finds the real day
   INTEGER :: true_month ! Finds the real month
-  REAL :: temp_one,temp_two !temp values
+  REAL :: temp_one,temp_two,temp_three,temp_four,temp_five,temp_six,temp_seven !temp values
 
 
   IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
@@ -220,6 +224,11 @@ SUBROUTINE calc_hi_average()
      DO j=1,ny_global
         DO i=1,nx_global
            hi_grid_d(i+1,j+1) = c0
+        END DO
+     END DO
+     DO j=1,ny_global
+        DO i=1,nx_global
+           frb_grid_d(i+1,j+1) = c0
         END DO
      END DO
      DO k=1,ncat
@@ -237,7 +246,6 @@ SUBROUTINE calc_hi_average()
            IF (aicen(i+1,j+1,k,1) > puny) THEN
               hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k) + &
                    (vicen(i+1,j+1,k,1) / aicen(i+1,j+1,k,1))
-              !hi_d(i+1,j+1,k) = vicen(i+1,j+1,k,1) / aicen(i+1,j+1,k,1)
            ELSE
 	      hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k)
  	   END IF
@@ -254,11 +262,39 @@ SUBROUTINE calc_hi_average()
            temp_two=temp_two+aicen(i+1,j+1,k,1)
         END DO
         IF (temp_one > puny .AND. temp_two > puny) THEN
-           hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + (temp_one/temp_two) !keep
-           !for mon ave
+           hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + (temp_one/temp_two)
+           !hi_grid_d(i+1,j+1) = temp_one/temp_two !keep for daily average
+        ELSE
+	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
+	   !hi_grid_d(i+1,j+1) = 0 !keep for daily average
+        END IF
+     END DO
+  END DO
+
+  DO j=1,ny_global
+     DO i=1,nx_global
+        temp_one=c0
+        temp_two=c0
+        temp_three=c0
+        temp_four=c0
+        temp_five=c0
+        temp_six=c0
+        temp_seven=c0
+        DO k=1,ncat
+           temp_one=temp_one+vicen(i+1,j+1,k,1)
+           temp_two=temp_two+aicen(i+1,j+1,k,1)
+           temp_three=temp_three+vsnon(i+1,j+1,k,1)
+        END DO
+        IF (temp_one > puny .AND. temp_two > puny) THEN
+           temp_four = temp_one/temp_two !hi
+           temp_five = temp_three/temp_two !hs
+           temp_six = temp_four * (rhow - rhoi) !hi(pw-pi)
+           temp_seven = temp_five * rhos !hsps
+           frb_grid_d(i+1,j+1) = frb_grid_d(i+1,j+1) + ((temp_six+temp_seven)/rhow) 
+           !for daily ave:
            !hi_grid_d(i+1,j+1) = temp_one/temp_two
         ELSE
-	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) !keep for mon ave
+	   frb_grid_d(i+1,j+1) = frb_grid_d(i+1,j+1) !keep for mon ave
 	   !hi_grid_d(i+1,j+1) = 0
         END IF
      END DO
@@ -275,6 +311,12 @@ SUBROUTINE calc_hi_average()
   DO j=1,ny_global
      DO i=1,nx_global
         hi_m(i+1,j+1) = hi_grid_d(i+1,j+1) / REAL(true_day)
+     END DO
+  END DO
+
+  DO j=1,ny_global
+     DO i=1,nx_global
+        frb_m(i+1,j+1) = frb_grid_d(i+1,j+1) / REAL(true_day)
      END DO
   END DO
 
@@ -307,8 +349,9 @@ SUBROUTINE calc_2d_offset()
   stress12_4_offset = stress12_3_offset + nx_global*ny_global
   sst_offset = stress12_4_offset + nx_global*ny_global
   hi_m_offset = sst_offset + nx_global*ny_global
+  frb_m_offset = hi_m_offset + nx_global*ny_global
 #ifdef USE_STRESS
-  a11_1_offset = hi_m_offset + nx_global*ny_global
+  a11_1_offset = frb_m_offset + nx_global*ny_global
   a11_2_offset = a11_1_offset + nx_global*ny_global
   a11_3_offset = a11_2_offset + nx_global*ny_global
   a11_4_offset = a11_3_offset + nx_global*ny_global
@@ -335,15 +378,16 @@ SUBROUTINE calc_2d_offset()
   var2d_offset(14) = stress12_4_offset
   var2d_offset(15) = sst_offset
   var2d_offset(16) = hi_m_offset
+  var2d_offset(17) = frb_m_offset
 #ifdef USE_STRESS
-  var2d_offset(17) = a11_1_offset
-  var2d_offset(18) = a11_2_offset
-  var2d_offset(19) = a11_3_offset
-  var2d_offset(20) = a11_4_offset
-  var2d_offset(21) = a12_1_offset
-  var2d_offset(22) = a12_2_offset
-  var2d_offset(23) = a12_3_offset
-  var2d_offset(24) = a12_4_offset
+  var2d_offset(18) = a11_1_offset
+  var2d_offset(19) = a11_2_offset
+  var2d_offset(20) = a11_3_offset
+  var2d_offset(21) = a11_4_offset
+  var2d_offset(22) = a12_1_offset
+  var2d_offset(23) = a12_2_offset
+  var2d_offset(24) = a12_3_offset
+  var2d_offset(25) = a12_4_offset
 #endif
 
 END SUBROUTINE calc_2d_offset
@@ -367,7 +411,7 @@ SUBROUTINE calc_3d_offset()
   aicen_offset = a12_4_offset + nx_global*ny_global ! Continue
   ! from 2d state variable a12_4 offset
 #else
-  aicen_offset = hi_m_offset + nx_global*ny_global ! Continue
+  aicen_offset = frb_m_offset + nx_global*ny_global ! Continue
   ! from 2d state variable sst offset
 #endif
   vicen_offset = aicen_offset + nx_global*ny_global*ncat
@@ -454,6 +498,7 @@ SUBROUTINE calc_2d_dim()
   stress12_4_dim_state = nx_global*ny_global
   sst_dim_state = nx_global*ny_global
   hi_m_dim_state = nx_global*ny_global
+  frb_m_dim_state = nx_global*ny_global
 #ifdef USE_STRESS
   a11_1_dim_state = nx_global*ny_global
   a11_2_dim_state = nx_global*ny_global
@@ -482,15 +527,16 @@ SUBROUTINE calc_2d_dim()
   var2d_dim_state(14) = stress12_4_dim_state
   var2d_dim_state(15) = sst_dim_state
   var2d_dim_state(16) = hi_m_dim_state
+  var2d_dim_state(17) = frb_m_dim_state
 #ifdef USE_STRESS
-  var2d_dim_state(17) = a11_1_dim_state
+  var2d_dim_state(18) = a11_1_dim_state
   var2d_dim_state(18) = a11_2_dim_state
-  var2d_dim_state(19) = a11_3_dim_state
-  var2d_dim_state(20) = a11_4_dim_state
-  var2d_dim_state(21) = a12_1_dim_state
-  var2d_dim_state(22) = a12_2_dim_state
-  var2d_dim_state(23) = a12_3_dim_state
-  var2d_dim_state(24) = a12_4_dim_state
+  var2d_dim_state(20) = a11_3_dim_state
+  var2d_dim_state(21) = a11_4_dim_state
+  var2d_dim_state(22) = a12_1_dim_state
+  var2d_dim_state(23) = a12_2_dim_state
+  var2d_dim_state(24) = a12_3_dim_state
+  var2d_dim_state(25) = a12_4_dim_state
 #endif
 
 END SUBROUTINE calc_2d_dim
@@ -689,20 +735,26 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
         s = s + 1
 
         IF (id2d_list(idx) .NE. 'hi_m') THEN
+           IF (id2d_list(idx) .NE. 'frb_m') THEN
            stat(s) = NF90_GET_VAR(ncid_in, id_2dvar, var2d, start=pos, count=cnt)
+           ELSE
+              var2d(:,:)=0.0
+           END IF
         ELSE
            var2d(:,:)=0.0
         END IF
 
         IF (id2d_list(idx) .NE. 'hi_m') THEN
-           DO i = 1, s
-              IF (stat(i) .NE. NF90_NOERR) THEN
-                 WRITE(*,'(/9x, a, 3x, a)') &
-                      'NetCDF error in reading initial state file, var=', &
-                      trim(id2d_list(idx))
-                 CALL abort_parallel()
-              END IF
-           END DO
+           IF (id2d_list(idx) .NE. 'frb_m') THEN
+              DO i = 1, s
+                 IF (stat(i) .NE. NF90_NOERR) THEN
+                    WRITE(*,'(/9x, a, 3x, a)') &
+                         'NetCDF error in reading initial state file, var=', &
+                         trim(id2d_list(idx))
+                    CALL abort_parallel()
+                 END IF
+              END DO
+           END IF
         END IF
 
         ! Write fields into state vector
@@ -979,6 +1031,12 @@ SUBROUTINE fill2d_statevector(dim_p, state_p)
   DO j=1,ny_global
      DO i=1,nx_global
         state_p(i+(j-1)*nx_global + hi_m_offset) = hi_m(i+1,j+1)
+     END DO
+  END DO
+
+  DO j=1,ny_global
+     DO i=1,nx_global
+        state_p(i+(j-1)*nx_global + frb_m_offset) = frb_m(i+1,j+1)
      END DO
   END DO
 
@@ -1432,6 +1490,12 @@ SUBROUTINE distrib2d_statevector(dim_p, state_p)
   DO j = 1,ny_global
      DO i = 1,nx_global
         hi_m(i+1,j+1) = state_p(i+(j-1)*nx_global + hi_m_offset)
+     END DO
+  END DO
+
+  DO j=1,ny_global
+     DO i = 1,nx_global
+        frb_m(i+1,j+1) = state_p(i+(j-1)*nx_global + frb_m_offset)
      END DO
   END DO
 

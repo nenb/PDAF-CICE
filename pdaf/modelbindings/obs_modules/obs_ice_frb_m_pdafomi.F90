@@ -41,7 +41,7 @@
 !! * 2019-06 - Lars Nerger - Initial code
 !! * Later revisions - see repository log
 !!
-MODULE obs_ice_hi_m_pdafomi
+MODULE obs_ice_frb_m_pdafomi
 
   USE mod_parallel_pdaf, &
        ONLY: mype_filter, abort_parallel    ! Rank of filter process
@@ -52,19 +52,19 @@ MODULE obs_ice_hi_m_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_hi_m        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_frb_m=.TRUE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_hi_m      !< Observation error standard deviation (for constant errors)
-  REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
+  REAL    :: rms_ice_frb_m=0.03      !< Observation error standard deviation (for constant errors)
+  REAL    :: noise_amp = 0.03  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
   LOGICAL            :: obs_file=.TRUE. ! Are observations read from file or manually created
-  CHARACTER(len=200) :: file_ice_hi_m = &
+  CHARACTER(len=200) :: file_ice_frb_m = &
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 2007                 ! Set to first year of assim
+  INTEGER :: year = 2012                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -162,7 +162,7 @@ CONTAINS
 !! can include modules from the model with 'use', e.g. for mesh information.
 !! Alternatively one could include these as subroutine arguments
 !!
-  SUBROUTINE init_dim_obs_ice_hi_m(step, dim_obs)
+  SUBROUTINE init_dim_obs_ice_frb_m(step, dim_obs)
 
     USE PDAFomi, &
          ONLY: PDAFomi_gather_obs
@@ -174,9 +174,9 @@ CONTAINS
     USE ice_grid, &
          ONLY: tlon, tlat
     USE ice_constants, &
-         ONLY: pi, puny
+         ONLY: pi, puny, rhow, rhoi, rhos
     USE mod_statevector, &
-         ONLY: hi_m_offset
+         ONLY: frb_m_offset
     USE ice_calendar, &
 	 ONLY: mday, month, nyr, year_init, idate, monthp, daymo
 
@@ -199,8 +199,11 @@ CONTAINS
     INTEGER :: day  			   ! day (dd)
     LOGICAL :: end_of_month                ! if we will assimilate
     REAL, ALLOCATABLE :: obs_field1(:,:)    ! Observation field read from file
-    REAL, ALLOCATABLE :: obs_field2(:,:)    !!!! Temporary zebra
-    REAL, ALLOCATABLE :: ice_hi_m_field(:,:) ! Solely hi_m read in
+    REAL, ALLOCATABLE :: obs_field2(:,:)    !!!! Temporary zebra for aicen
+    REAL, ALLOCATABLE :: obs_field3(:,:)    ! Temporary for vsnon
+    REAL, ALLOCATABLE :: ice_thickness_field(:,:) ! To store hi_m/aice_m
+    REAL, ALLOCATABLE :: snow_thickness_field(:,:) ! To store hs_m/aice_m
+    REAL, ALLOCATABLE :: ice_frb_m_field(:,:) ! Solely frb_m read in
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
     REAL, ALLOCATABLE :: ivar_obs_p(:)        ! PE-local inverse observation error variance
     REAL, ALLOCATABLE :: ocoord_p(:,:)        ! PE-local observation coordinates
@@ -215,9 +218,9 @@ CONTAINS
 ! *********************************************
 
     IF (mype_filter==0) &
-         WRITE (*,'(8x,a)') 'Assimilate observations - OBS_ice_hi_m'
+         WRITE (*,'(8x,a)') 'Assimilate observations - OBS_ice_frb_m'
     ! Store whether to assimilate this observation type (used in routines below)
-    IF (assim_ice_hi_m) thisobs%doassim = 1
+    IF (assim_ice_frb_m) thisobs%doassim = 1
 
     ! Specify type of distance computation
     !thisobs%disttype = 0   ! 0=Cartesian
@@ -227,9 +230,10 @@ CONTAINS
     ! The distance compution starts from the first row
     thisobs%ncoord = 2
 
-    ! Array for hi_m
+    ! Array for frb_m
     ALLOCATE(obs_field1(nx_global, ny_global))
     ALLOCATE(obs_field2(nx_global, ny_global)) !zebra
+    ALLOCATE(obs_field3(nx_global, ny_global)) !zebra
 
     IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
        day=mday-1
@@ -238,6 +242,8 @@ CONTAINS
     ELSE
        mon=monthp
        day=daymo(mon)
+      !end_of_month = .TRUE.
+      !winter_only code
        IF (mon == 1) THEN
           end_of_month = .TRUE.
        ELSE IF (mon == 2) THEN
@@ -253,8 +259,7 @@ CONTAINS
        ELSE IF (mon == 12) THEN
           end_of_month = .TRUE.
        ELSE
-        ! To assimilate every month change this to .TRUE.
-          end_of_month = .TRUE.
+          end_of_month = .FALSE.
        END IF
     END IF
 
@@ -279,13 +284,13 @@ CONTAINS
     WRITE(yeart,'(i4.4)') year
     WRITE(montht,'(i2.2)') mon
     WRITE(dayt,'(i2.2)') day
-    file_ice_hi_m='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+    file_ice_frb_m='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
     !TEMP CODE TO ASSIM DAILY
-    !WRITE(file_ice_hi_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht) &
+    !WRITE(file_ice_frb_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht) &
     !//'-'//trim(dayt)//'.nc'
 
-    WRITE(file_ice_hi_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht)//'.nc'
-    WRITE(*,*) 'FILE ICE HI_M: ', file_ice_hi_m
+    WRITE(file_ice_frb_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht)//'.nc'
+    WRITE(*,*) 'FILE ICE FRB_M: ', file_ice_frb_m
  !  ! We read in fields from a file
     IF (obs_file) THEN
        ! **********************************
@@ -295,15 +300,15 @@ CONTAINS
        ! Read observation values and their coordinates,
        ! also read observation error information if available
        
-       !1. First read fractional ice area 'aicen'
+       !1. First read in monthly mean ice thickness 'hi_m'
        s = 1
-       stat(s) = NF90_OPEN(trim(file_ice_hi_m), NF90_NOWRITE, ncid_in)
+       stat(s) = NF90_OPEN(trim(file_ice_frb_m), NF90_NOWRITE, ncid_in)
 
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
                   'NetCDF error in opening file:', &
-                  trim(file_ice_hi_m)
+                  trim(file_ice_frb_m)
              CALL abort_parallel()
           END IF
        END DO
@@ -348,7 +353,7 @@ CONTAINS
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
                   'NetCDF error in closing file:', &
-                  trim(file_ice_hi_m)
+                  trim(file_ice_frb_m)
              CALL abort_parallel()
           END IF
        END DO
@@ -361,13 +366,13 @@ CONTAINS
        ! also read observation error information if available
        
        s = 1
-       stat(s) = NF90_OPEN(trim(file_ice_hi_m), NF90_NOWRITE, ncid_in)
+       stat(s) = NF90_OPEN(trim(file_ice_frb_m), NF90_NOWRITE, ncid_in)
 
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
                   'NetCDF error in opening file:', &
-                  trim(file_ice_hi_m)
+                  trim(file_ice_frb_m)
              CALL abort_parallel()
           END IF
        END DO
@@ -396,7 +401,7 @@ CONTAINS
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
-                  'NetCDF error in reading observations for hi_m'
+                  'NetCDF error in reading observations for aice_m'
              CALL abort_parallel()
           END IF
        END DO
@@ -412,11 +417,76 @@ CONTAINS
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
                   'NetCDF error in closing file:', &
-                  trim(file_ice_hi_m)
+                  trim(file_ice_frb_m)
              CALL abort_parallel()
           END IF
        END DO
     ! zebra end
+
+       ! **********************************
+       ! *** Read PE-local observations ***
+       ! **********************************
+       
+       ! Read observation values and their coordinates,
+       ! also read observation error information if available
+       
+       !1. Now read in monthly mean snow thickness 'hs_m'
+       s = 1
+       stat(s) = NF90_OPEN(trim(file_ice_frb_m), NF90_NOWRITE, ncid_in)
+
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in opening file:', &
+                  trim(file_ice_frb_m)
+             CALL abort_parallel()
+          END IF
+       END DO
+
+       ! ******************************************
+       ! *** Read file containing initial state ***
+       ! ******************************************
+
+       s=1
+       stat(s) = NF90_INQ_VARID(ncid_in, 'hs_m', id_3dvar)
+
+       ! Read state variable data from file
+       pos_nc = (/ 1, 1 /)
+       cnt_nc = (/ nx_global , ny_global /)
+       s = s + 1
+       IF (end_of_month .EQV. .TRUE.) THEN
+          stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field3, start=pos_nc, count=cnt_nc)
+       ELSE
+         DO i=1,nx_global
+	     DO j=1,ny_global
+		obs_field3(i,j)=-1
+	     END DO
+	  END DO
+       END IF
+
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in reading observations for hs_m'
+             CALL abort_parallel()
+          END IF
+       END DO
+
+       ! *******************************************
+       ! *** Close file containing initial state ***
+       ! *******************************************
+
+       s = 1
+       stat(s) = NF90_CLOSE(ncid_in)
+
+       DO i = 1, s
+          IF (stat(i) .NE. NF90_NOERR) THEN
+             WRITE(*,'(/9x, a, 3x, a)') &
+                  'NetCDF error in closing file:', &
+                  trim(file_ice_frb_m)
+             CALL abort_parallel()
+          END IF
+       END DO
 
     ELSE
        ! obs_field1 is vicen/aicen
@@ -426,6 +496,7 @@ CONTAINS
              IF (i >= 45 .AND. i<= 55 .AND. j>=80 .AND.  j<=90) THEN
                      obs_field1(i,j) = 5.0
                      obs_field2(i,j) = 1.0
+                     obs_field3(i,j) = 1.0
              END IF
           END DO
        END DO
@@ -438,16 +509,21 @@ CONTAINS
 ! *** and initialize index and coordinate arrays.         ***
 ! ***********************************************************
 
-    ! Compute ice hi_m observation field
-    ALLOCATE(ice_hi_m_field(nx_global,ny_global))
+    ! Compute ice frb_m observation field
+    ALLOCATE(ice_frb_m_field(nx_global,ny_global))
+    ALLOCATE(ice_thickness_field(nx_global,ny_global))
+    ALLOCATE(snow_thickness_field(nx_global,ny_global))
 
     DO j = 1, ny_global
        DO i= 1, nx_global
-          !ice_hi_m_field(i,j) = obs_field1(i,j)
+          !ice_frb_m_field(i,j) = obs_field1(i,j)
           IF (obs_field1(i,j) > 0.0 .AND. obs_field1(i,j) < 30.0 .AND. obs_field2(i,j) > 0.0) THEN !zebra
-             ice_hi_m_field(i,j) = obs_field1(i,j)/obs_field2(i,j)
+             ice_thickness_field(i,j) = obs_field1(i,j)/obs_field2(i,j)
+             snow_thickness_field(i,j) = obs_field3(i,j)/obs_field2(i,j)
+             ice_frb_m_field(i,j) = (ice_thickness_field(i,j)*(rhow-rhoi) &
+             + snow_thickness_field(i,j)*rhos) / rhow
           ELSE
-             ice_hi_m_field(i,j) = -1
+             ice_frb_m_field(i,j) = -1
           END IF
        END DO
     END DO
@@ -456,7 +532,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_hi_m_field(i,j) >0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
+          IF (ice_frb_m_field(i,j) >0.0 .AND. ice_frb_m_field(i,j) < 5.0) THEN
              cnt = cnt + 1
           END IF
        END DO
@@ -515,10 +591,10 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_hi_m_field(i,j) >0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
+          IF (ice_frb_m_field(i,j) >0.0 .AND. ice_frb_m_field(i,j) < 30.0) THEN
              cnt = cnt + 1
-             thisobs%id_obs_p(1, cnt)  = hi_m_offset + cnt0
-             obs_p(cnt) = ice_hi_m_field(i,j)
+             thisobs%id_obs_p(1, cnt)  = frb_m_offset + cnt0
+             obs_p(cnt) = ice_frb_m_field(i,j)
              ! Use (i+1, j+1) due to ghost cells
              ocoord_p(1, cnt) = tlon(i+1,j+1,1)
              ocoord_p(2, cnt) = tlat(i+1,j+1,1)
@@ -564,7 +640,7 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
 
-    ivar_obs_p = 1.0/(rms_ice_hi_m*rms_ice_hi_m)
+    ivar_obs_p = 1.0/(rms_ice_frb_m*rms_ice_frb_m)
 
 ! ****************************************
 ! *** Gather global observation arrays ***
@@ -582,14 +658,17 @@ CONTAINS
 
     ! Deallocate all local arrays
     DEALLOCATE(obs_p, ocoord_p, ivar_obs_p)
-    DEALLOCATE(ice_hi_m_field)
+    DEALLOCATE(ice_frb_m_field)
+    DEALLOCATE(ice_thickness_field)
+    DEALLOCATE(snow_thickness_field)
     DEALLOCATE(obs_field1)  
     DEALLOCATE(obs_field2) !zebra
+    DEALLOCATE(obs_field3) !zebra
 
     ! Arrays in THISOBS have to be deallocated after the analysis step
     ! by a call to deallocate_obs() in prepoststep_pdaf.
 
-  END SUBROUTINE init_dim_obs_ice_hi_m
+  END SUBROUTINE init_dim_obs_ice_frb_m
 
 
 
@@ -620,7 +699,7 @@ CONTAINS
 !!
 !! The routine is called by all filter processes.
 !!
-  SUBROUTINE obs_op_ice_hi_m(dim_p, dim_obs, state_p, ostate)
+  SUBROUTINE obs_op_ice_frb_m(dim_p, dim_obs, state_p, ostate)
 
     USE PDAFomi, &
          ONLY: PDAFomi_obs_op_gridpoint
@@ -650,7 +729,7 @@ CONTAINS
 
     END IF
 
-  END SUBROUTINE obs_op_ice_hi_m
+  END SUBROUTINE obs_op_ice_frb_m
 
 !-------------------------------------------------------------------------------
 !> Initialize local information on the module-type observation
@@ -668,7 +747,7 @@ CONTAINS
 !! different localization radius and localization functions
 !! for each observation type and  local analysis domain.
 !!
-  SUBROUTINE init_dim_obs_l_ice_hi_m(domain_p, step, dim_obs, dim_obs_l)
+  SUBROUTINE init_dim_obs_l_ice_frb_m(domain_p, step, dim_obs, dim_obs_l)
 
     ! Include PDAFomi function
     USE PDAFomi, ONLY: PDAFomi_init_dim_obs_l
@@ -692,7 +771,7 @@ CONTAINS
     CALL PDAFomi_init_dim_obs_l(thisobs_l, thisobs, coords_l, &
          locweight, local_range, srange, dim_obs_l)
 
-  END SUBROUTINE init_dim_obs_l_ice_hi_m
+  END SUBROUTINE init_dim_obs_l_ice_frb_m
   
   SUBROUTINE add_noise(dim_state, x)
 
@@ -725,11 +804,11 @@ CONTAINS
 
     ! Seeds taken from PDAF Lorenz96 routine
     IF (firststep==1) THEN
-       WRITE (*,'(9x, a)') '--- Initialize seed for ice hi_m noise'
-       iseed(1)=2*180+1
-       iseed(2)=2*140+5
-       iseed(3)=2*60+7
-       iseed(4)=2*20+9
+       WRITE (*,'(9x, a)') '--- Initialize seed for ice frb_m noise'
+       iseed(1)=2*90+1
+       iseed(2)=2*130+5
+       iseed(3)=2*90+7
+       iseed(4)=2*110+9
        firststep=0
     ENDIF
 
@@ -749,4 +828,4 @@ CONTAINS
 
   END SUBROUTINE add_noise
 
-END MODULE obs_ice_hi_m_pdafomi
+END MODULE obs_ice_frb_m_pdafomi

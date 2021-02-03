@@ -54,8 +54,8 @@ MODULE obs_ice_hi_dist_pdafomi
   ! Variables which are inputs to the module (usually set in init_pdaf)
   LOGICAL :: assim_ice_hi_dist=.FALSE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_hi_dist=0.4      !< Observation error standard deviation (for constant errors)
-  REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
+  REAL    :: rms_ice_hi_dist=0.5      !< Observation error standard deviation (for constant errors)
+  REAL    :: noise_amp = 0.5  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
@@ -236,7 +236,25 @@ CONTAINS
     ELSE
        mon=monthp
        day=daymo(mon)
-       end_of_month = .TRUE.
+       !end_of_month = .TRUE.
+!      winter_only code
+       IF (mon == 1) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 2) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 3) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 4) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 10) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 11) THEN
+          end_of_month = .TRUE.
+       ELSE IF (mon == 12) THEN
+          end_of_month = .TRUE.
+       ELSE
+          end_of_month = .FALSE.
+       END IF
     END IF
 
     ! *******************************
@@ -646,10 +664,10 @@ CONTAINS
     ! Seeds taken from PDAF Lorenz96 routine
     IF (firststep==1) THEN
        WRITE (*,'(9x, a)') '--- Initialize seed for ice hi_dist noise'
-       iseed(1)=2*220+1
-       iseed(2)=2*100+5
-       iseed(3)=2*10+7
-       iseed(4)=2*30+9
+       iseed(1)=2*160+1
+       iseed(2)=2*240+5
+       iseed(3)=2*60+7
+       iseed(4)=2*20+9
        firststep=0
     ENDIF
 
