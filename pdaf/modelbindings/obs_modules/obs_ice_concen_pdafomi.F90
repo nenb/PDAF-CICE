@@ -616,6 +616,7 @@ CONTAINS
     REAL, ALLOCATABLE :: noise(:)      ! Random noise
     INTEGER, SAVE :: iseed(4)          ! Seed for random number generator
     INTEGER, SAVE :: firststep=1       ! Flag for first call
+    INTEGER :: i                       ! Counters
 
 
     ! ***********************
@@ -625,10 +626,10 @@ CONTAINS
     ! Seeds taken from PDAF Lorenz96 routine
     IF (firststep==1) THEN
        WRITE (*,'(9x, a)') '--- Initialize seed for ice concen noise'
-       iseed(1)=2*220+1
-       iseed(2)=2*100+5
-       iseed(3)=2*10+7
-       iseed(4)=2*30+9
+       iseed(1)=2*80+1
+       iseed(2)=2*60+5
+       iseed(3)=2*40+7
+       iseed(4)=2*20+9
        firststep=0
     ENDIF
 
@@ -638,7 +639,14 @@ CONTAINS
 
     ! Add noise to generate observations
     x = x + (noise_amp * noise)
-
+    !DO i=1,dim_state
+    !   IF (x(i) < 0.0) THEN
+    !      x(i) = 0.0
+    !   END IF
+    !   IF (x(i) > 1.0) THEN
+    !      x(i) = 1.0
+    !   END IF
+    !END DO
     DEALLOCATE(noise)
 
   END SUBROUTINE add_noise

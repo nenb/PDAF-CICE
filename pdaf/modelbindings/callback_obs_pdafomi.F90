@@ -35,6 +35,7 @@ SUBROUTINE init_dim_obs_pdafomi(step, dim_obs)
   ! Include functions for different observations
   USE obs_ice_concen_pdafomi, ONLY: assim_ice_concen, init_dim_obs_ice_concen
   USE obs_ice_hi_m_pdafomi, ONLY: assim_ice_hi_m, init_dim_obs_ice_hi_m
+  USE obs_ice_frb_m_pdafomi, ONLY: assim_ice_frb_m, init_dim_obs_ice_frb_m
   USE obs_ice_hi_dist_pdafomi, ONLY: assim_ice_hi_dist, init_dim_obs_ice_hi_dist
 
   IMPLICIT NONE
@@ -46,6 +47,7 @@ SUBROUTINE init_dim_obs_pdafomi(step, dim_obs)
 ! *** Local variables ***
   INTEGER :: dim_obs_ice_concen ! Observation dimensions
   INTEGER :: dim_obs_ice_hi_m ! Observation dimensions
+  INTEGER :: dim_obs_ice_frb_m ! Observation dimensions
   INTEGER :: dim_obs_ice_hi_dist ! Observation dimensions
 
 ! *********************************************
@@ -55,6 +57,7 @@ SUBROUTINE init_dim_obs_pdafomi(step, dim_obs)
   ! Initialize number of observations
   dim_obs_ice_concen = 0
   dim_obs_ice_hi_m = 0
+  dim_obs_ice_frb_m = 0
   dim_obs_ice_hi_dist = 0
 
   ! Call observation-specific routines
@@ -62,9 +65,10 @@ SUBROUTINE init_dim_obs_pdafomi(step, dim_obs)
   ! in which order they are called
   IF (assim_ice_concen) CALL init_dim_obs_ice_concen(step, dim_obs_ice_concen)
   IF (assim_ice_hi_m) CALL init_dim_obs_ice_hi_m(step, dim_obs_ice_hi_m)
+  IF (assim_ice_frb_m) CALL init_dim_obs_ice_frb_m(step, dim_obs_ice_frb_m)
   IF (assim_ice_hi_dist) CALL init_dim_obs_ice_hi_dist(step, dim_obs_ice_hi_dist)
 
-  dim_obs = dim_obs_ice_concen + dim_obs_ice_hi_m + dim_obs_ice_hi_dist
+  dim_obs = dim_obs_ice_concen + dim_obs_ice_hi_m + dim_obs_ice_frb_m + dim_obs_ice_hi_dist
 
 END SUBROUTINE init_dim_obs_pdafomi
 
@@ -80,6 +84,7 @@ SUBROUTINE obs_op_pdafomi(step, dim_p, dim_obs, state_p, ostate)
   ! Include functions for different observations
   USE obs_ice_concen_pdafomi, ONLY: obs_op_ice_concen
   USE obs_ice_hi_m_pdafomi, ONLY: obs_op_ice_hi_m
+  USE obs_ice_frb_m_pdafomi, ONLY: obs_op_ice_frb_m
   USE obs_ice_hi_dist_pdafomi, ONLY: obs_op_ice_hi_dist
 
   IMPLICIT NONE
@@ -101,6 +106,7 @@ SUBROUTINE obs_op_pdafomi(step, dim_p, dim_obs, state_p, ostate)
   ! order of the calls in init_dim_obs_pdafomi
   CALL obs_op_ice_concen(dim_p, dim_obs, state_p, ostate)
   CALL obs_op_ice_hi_m(dim_p, dim_obs, state_p, ostate)
+  CALL obs_op_ice_frb_m(dim_p, dim_obs, state_p, ostate)
   CALL obs_op_ice_hi_dist(dim_p, dim_obs, state_p, ostate)
 
 END SUBROUTINE obs_op_pdafomi
@@ -118,6 +124,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs, dim_obs_l)
   ! Include functions for different observations
   USE obs_ice_concen_pdafomi, ONLY: init_dim_obs_l_ice_concen
   USE obs_ice_hi_m_pdafomi, ONLY: init_dim_obs_l_ice_hi_m
+  USE obs_ice_frb_m_pdafomi, ONLY: init_dim_obs_l_ice_frb_m
   USE obs_ice_hi_dist_pdafomi, ONLY: init_dim_obs_l_ice_hi_dist
 
 
@@ -137,6 +144,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs, dim_obs_l)
   ! Call init_dim_obs_l specific for each observation
   CALL init_dim_obs_l_ice_concen(domain_p, step, dim_obs, dim_obs_l)
   CALL init_dim_obs_l_ice_hi_m(domain_p, step, dim_obs, dim_obs_l)
+  CALL init_dim_obs_l_ice_frb_m(domain_p, step, dim_obs, dim_obs_l)
   CALL init_dim_obs_l_ice_hi_dist(domain_p, step, dim_obs, dim_obs_l)
 
 END SUBROUTINE init_dim_obs_l_pdafomi
@@ -156,6 +164,7 @@ SUBROUTINE deallocate_obs_pdafomi(step)
   ! Include observation types (rename generic name)
   USE obs_ice_concen_pdafomi, ONLY: obs_ice_concen => thisobs
   USE obs_ice_hi_m_pdafomi, ONLY: obs_ice_hi_m => thisobs
+  USE obs_ice_frb_m_pdafomi, ONLY: obs_ice_frb_m => thisobs
   USE obs_ice_hi_dist_pdafomi, ONLY: obs_ice_hi_dist => thisobs
 
   IMPLICIT NONE
@@ -170,6 +179,7 @@ SUBROUTINE deallocate_obs_pdafomi(step)
 
   CALL PDAFomi_deallocate_obs(obs_ice_concen)
   CALL PDAFomi_deallocate_obs(obs_ice_hi_m)
+  CALL PDAFomi_deallocate_obs(obs_ice_frb_m)
   CALL PDAFomi_deallocate_obs(obs_ice_hi_dist)
 
 END SUBROUTINE deallocate_obs_pdafomi
