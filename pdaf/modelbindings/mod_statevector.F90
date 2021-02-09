@@ -651,8 +651,9 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
      ! ******************************************
      ! *** Open file containing initial state ***
      ! ******************************************
-
-     yr = year_init + member - 1
+    
+     !To change to using EOFs, comment out the + member - 1 
+     yr = year_init! + member - 1
      WRITE(year, '(i4)') yr
      istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
      s = 1
@@ -769,7 +770,8 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
      ! *** Open file containing initial state ***
      ! ******************************************
 
-     yr = year_init + member - 1
+     !To change to using EOFs, comment out the "+ member - 1" 
+     yr = year_init! + member - 1
      WRITE(year, '(i4)') yr
      istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
      s = 1
@@ -1986,6 +1988,10 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
            DO i = 1,nx_global
               IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global + &
                    (k-1)*nx_global*ny_global + aicen_offset) > puny) THEN
+                 WRITE(*,*) 'WARNING: creating zebra ice at grid cell'
+                 WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
+                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
+                      aicen_offset)
                  trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
                  trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
                  trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
@@ -2239,7 +2245,7 @@ SUBROUTINE physics_check()
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-           IF ( (aicen(i+1,j+1,k,1) <= puny) .OR. (vsnon(i+1,j+1,k,1) <= puny) &
+           IF ( (aicen(i+1,j+1,k,1) <= puny) & ! .OR. (vsnon(i+1,j+1,k,1) <= puny)
                 .OR. (vicen(i+1,j+1,k,1) <= puny) ) THEN
               aicen(i+1,j+1,k,1) = c0
               vsnon(i+1,j+1,k,1) = c0
@@ -2300,62 +2306,62 @@ SUBROUTINE physics_check()
   END DO
 
   ! Check Salinities and surface temperatures are not out of bounds.
-  DO k=1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-	   IF (aicen(i+1,j+1,k,1) > c0) THEN
-	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice+1,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice+2,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice+3,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice+4,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice+5,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_qice+6,k,1) >= -rhoi*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
-	      END IF
-              IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -1.9) THEN
-                 trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.9
-              END IF
-	      IF (trcrn(i+1,j+1,nt_sice,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice,k,1) = 0.2
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+1,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice+1,k,1) = 0.2
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+2,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice+2,k,1) = 0.2
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+3,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice+3,k,1) = 0.2
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+4,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice+4,k,1) = 0.2
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+5,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice+5,k,1) = 0.2
-	      END IF
-	      IF (trcrn(i+1,j+1,nt_sice+6,k,1) <= 0.2) THEN
-	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.2
-	      END IF
-	   END IF
-        END DO
-     END DO
-  END DO
+!  DO k=1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!	   IF (aicen(i+1,j+1,k,1) > c0) THEN
+!	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice+1,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice+2,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice+3,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice+4,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice+5,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_qice+6,k,1) >= -rhoi*Lfresh) THEN
+!		 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
+!	      END IF
+              !IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -1.9) THEN
+              !   trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.9
+              !END IF
+!	      IF (trcrn(i+1,j+1,nt_sice,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice,k,1) = 0.2
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_sice+1,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice+1,k,1) = 0.2
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_sice+2,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice+2,k,1) = 0.2
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_sice+3,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice+3,k,1) = 0.2
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_sice+4,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice+4,k,1) = 0.2
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_sice+5,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice+5,k,1) = 0.2
+!	      END IF
+!	      IF (trcrn(i+1,j+1,nt_sice+6,k,1) <= 0.2) THEN
+!	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.2
+!	      END IF
+!	   END IF
+!        END DO
+!     END DO
+!  END DO
 
 END SUBROUTINE physics_check
 

@@ -14,5 +14,5 @@
  locweight=2,
  srange=200000.0,
  rms_ice_concen=0.1,
- file_asml='/storage/silver/cpom/fm828007/asml.nc'
+ file_asml='/storage/silver/cpom/fm828007/newrun13.nc'
 /

@@ -52,8 +52,8 @@ MODULE obs_ice_concen_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_concen=.TRUE.        !< Whether to assimilate this data type
-  LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
+  LOGICAL :: assim_ice_concen=.FALSE.        !< Whether to assimilate this data type
+  LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_concen      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 

@@ -1,7 +1,7 @@
 &setup_nml
     days_per_year  = 365
   , use_leap_years = .false.
-  , year_init      = 1979
+  , year_init      = 2012
   , istep0         = 0
   , dt             = 3600.0
   , npt            = 8760
@@ -152,11 +152,11 @@
 &forcing_nml
     formdrag        = .true.
   , atmbndy         = 'default'
-  , fyear_init      = 1979
+  , fyear_init      = 2012
   , ycycle          = 4
   , atm_data_format = 'nc'
   , atm_data_type   = 'cpom'
-  , atm_data_dir    = '/storage/silver/cpom/xp904495/NCEP/NHemi_ocean/'
+  , atm_data_dir    = '/storage/silver/cpom/fm828007/'
   , calc_strair     = .true.
   , calc_Tsfc       = .true.
   , natmiter        = 5

@@ -1,11 +1,19 @@
-CICE-PDAF - Development Notes
-==============================
 
-## 1. PDAF manual for ‘online mode’ implementation:  
+User Documentation - Coming Soon!
+=================================
+
+---------------------------------
+
+</br>
+</br>
+
+### CICE-PDAF - Development Notes
+
+### 1. PDAF manual for ‘online mode’ implementation:  
 
 http://pdaf.awi.de/trac/wiki/ImplementationGuide 
 
-## 2. Building CICE-PDAF 
+### 2. Building CICE-PDAF 
 
 The coupled CICE-PDAF model can be compiled and run using the original CICE build and run scripts. Some extra environment variables have been added to the ‘comp_ice’ and ‘clean_ice’ scripts. These variables are used in building the PDAF library, selecting the appropriate makefile macro and in building the CICE-PDAF model.  
 
@@ -19,13 +27,13 @@ In the run directory (rundir), the only change is that a namelist has been added
 
 *The PDAF library contains all the necessary routines for performing the assimilation step.
 
-## 3.a ‘Fully-parallel’ implementation of PDAF 
+### 3.a ‘Fully-parallel’ implementation of PDAF 
 
 PDAF has been attached to CICE using the fully-parallel implementation. See the following schematic from the PDAF website: 
 
 ![PDAF_Schematic](/PDAF_Schematic.png)
 
-## 3.b Overview of calls from CICE to PDAF (PDAF amendments denoted by (P) and italics) 
+### 3.b Overview of calls from CICE to PDAF (PDAF amendments denoted by (P) and italics) 
 
 Changes have been made to the ‘driver’ program CICE.F90 and subroutine CICE_Run_Mod.F90, both located in the ‘drivers’ subdirectory. The changes can be summarised schematically as follows (these changes should be directly compared against the schematic from the previous section on the fully-parallel implementation of PDAF):  
 
@@ -58,7 +66,7 @@ istep = istep + 1
 
 ...
 
-## 4 Description of calls from CICE to PDAF 
+### 4 Description of calls from CICE to PDAF 
 
 PDAF is designed in such a way that (in theory) the only required changes to the original model source code are those described in section 3b. The remaining work then takes place inside separate user-supplied routines. All such user-supplied routines live in the subdirectory pdaf/modelbindings. This subdirectory is where the bulk of the coding work for the CICE-PDAF project takes place.  The following is a brief description of most routines in this subdirectory, *excluding those required for the analysis step*.
 
