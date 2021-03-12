@@ -1,0 +1,10 @@
+# Ignore local copies
+*~
+
+# Ignore all run directory files
+rundir/
+
+# Except the following run directory files
+!.gitignore
+!rundir/namelist.pdaf
+!rundir/ice_in

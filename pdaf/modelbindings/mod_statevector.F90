@@ -1878,10 +1878,11 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
   ! PDAF creates ice.
 
 ! !USES:
+  USE ice_domain_size, only: nilyr
   USE ice_state, &
-       ONLY: aicen, trcrn, nt_qice, nt_qsno
-  USE ice_constants, &
-       ONLY: c0, puny, rhoi, Lfresh, rhos
+       ONLY: aicen, trcrn, nt_qice, nt_qsno, nt_Tsfc, nt_sice
+  USE ice_constants
+  USE ice_zbgc_shared, only: min_salin
 
   IMPLICIT NONE
 
@@ -1890,9 +1891,17 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
   REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
 
   ! *** local variables ***
-  INTEGER :: i, j, k        ! Counters
+  INTEGER :: i, j, k, m     ! Counters
   LOGICAL, SAVE :: firsttime = .TRUE. ! Routine is called for first time?
-
+  REAL :: Ti                ! Enthalpy temp
+  REAL :: Tmltz             ! Melting temperature profile of ice
+  REAL :: nsal = 0.407      ! salinity constant
+  REAL :: msal = 0.573      ! salinity constant
+  REAL :: saltmax = 3.2     ! max salinity at ice base for BL99 (ppt)
+  REAL :: zn                ! normalized ice thickness
+  REAL :: sal               ! salinity profile
+  REAL :: slope             ! temperature profile slope
+  REAL :: Tf                ! freezing temperature at bottom of ice (top ocean)
 
   ! If routine is called for first time then don't need to worry about PDAF
   ! creating/destroying ice, and distribute enthalpies only on first timestep.
@@ -1988,18 +1997,24 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
            DO i = 1,nx_global
               IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global + &
                    (k-1)*nx_global*ny_global + aicen_offset) > puny) THEN
-                 WRITE(*,*) 'WARNING: creating zebra ice at grid cell'
-                 WRITE(*,*) 'i, j, ncat, new aicen:', i, j, k, &
-                      state_p(i+(j-1)*nx_global+(k-1)*nx_global*ny_global + &
-                      aicen_offset)
+                 Tf = -1.8
+                 Ti = min(-puny, trcrn(i+1,j+1,nt_Tsfc,k,1))
                  trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
-                 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
-                 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
+                 DO m=1, nilyr
+                    ! FIND LINEAR TEMPERATURE PROFILE
+                    slope = Tf - Ti
+                    Ti = Ti + slope*(m-p5)/nilyr
+                    ! FIND T_M (MELTING TEMPERATURE PROFILE)
+                    zn = (m-p5)/nilyr
+                    sal=(saltmax/c2)*(c1-cos(pi*zn**(nsal/(msal+zn))))
+                    sal= max(sal, min_salin)
+                    Tmltz = -sal*depressT
+                    !Tmltz = -1.8
+                    ! CALC ENTHALPY AND ASSIGN
+                    trcrn(i+1,j+1,nt_qice+m,k,1) = &
+                    -(rhoi * (cp_ice*(Tmltz-Ti) &
+                    + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+                 END DO
               END IF
               IF (aicen(i+1,j+1,k,1) == c0 .AND. state_p(i+(j-1)*nx_global + &
                    (k-1)*nx_global*ny_global + aicen_offset) > 0.1) THEN
@@ -2026,7 +2041,7 @@ SUBROUTINE physics_check()
        ONLY: aicen, vicen, vsnon, trcrn, nt_qsno, nt_sice, nt_qice, nt_Tsfc, &
        nt_hpnd, nt_apnd, nt_ipnd
   USE ice_constants, &
-         ONLY: c0, c1, puny, rhos, rhoi, Lfresh
+         ONLY: c0, c1, puny, rhos, rhoi, Lfresh, cp_ocn, cp_ice
 
   IMPLICIT NONE
 
@@ -2035,7 +2050,8 @@ SUBROUTINE physics_check()
 ! *** local variables ***
   INTEGER :: i, j, k        ! Counters
   REAL :: icetotal          ! Sum of ice concentration categories
-
+  REAL :: Ti                ! Enthalpy temp
+  REAL :: Tmltz             ! Melting temperature profile of ice
 
   ! Snow and ice enthalpies cannot be positive, salinities cannot be negative.
   DO k=1,ncat
@@ -2223,8 +2239,8 @@ SUBROUTINE physics_check()
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-	   IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > 0.0) THEN
-              trcrn(i+1,j+1,nt_Tsfc,k,1) = 0.0
+	   IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > c0) THEN
+              trcrn(i+1,j+1,nt_Tsfc,k,1) = c0
 	   END IF
         END DO
      END DO
@@ -2245,7 +2261,7 @@ SUBROUTINE physics_check()
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-           IF ( (aicen(i+1,j+1,k,1) <= puny) & ! .OR. (vsnon(i+1,j+1,k,1) <= puny)
+           IF ( (aicen(i+1,j+1,k,1) <= puny) & 
                 .OR. (vicen(i+1,j+1,k,1) <= puny) ) THEN
               aicen(i+1,j+1,k,1) = c0
               vsnon(i+1,j+1,k,1) = c0
@@ -2276,8 +2292,8 @@ SUBROUTINE physics_check()
   DO k=1,ncat
      DO j = 1,ny_global
         DO i = 1,nx_global
-           !!! Keeping the minimum aicen this high stops ice spikes from forming !
-           IF (aicen(i+1,j+1,k,1) < 0.01) THEN !(change puny to 0.0001 to fix)
+!           !!! Keeping the minimum aicen this high stops ice spikes from forming !
+           IF (aicen(i+1,j+1,k,1) < 0.001) THEN !(change puny to 0.01 to fix)
               aicen(i+1,j+1,k,1) = c0
               vsnon(i+1,j+1,k,1) = c0
               vicen(i+1,j+1,k,1) = c0
@@ -2306,62 +2322,83 @@ SUBROUTINE physics_check()
   END DO
 
   ! Check Salinities and surface temperatures are not out of bounds.
-!  DO k=1,ncat
-!     DO j = 1,ny_global
-!        DO i = 1,nx_global
-!	   IF (aicen(i+1,j+1,k,1) > c0) THEN
-!	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice,k,1) = -rhoi*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice+1,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice+1,k,1) = -rhoi*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice+2,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice+2,k,1) = -rhoi*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice+3,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice+3,k,1) = -rhoi*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice+4,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice+4,k,1) = -rhoi*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice+5,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice+5,k,1) = -rhoi*Lfresh
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_qice+6,k,1) >= -rhoi*Lfresh) THEN
-!		 trcrn(i+1,j+1,nt_qice+6,k,1) = -rhoi*Lfresh
-!	      END IF
-              !IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -1.9) THEN
-              !   trcrn(i+1,j+1,nt_Tsfc,k,1) = -1.9
-              !END IF
-!	      IF (trcrn(i+1,j+1,nt_sice,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice,k,1) = 0.2
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_sice+1,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice+1,k,1) = 0.2
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_sice+2,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice+2,k,1) = 0.2
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_sice+3,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice+3,k,1) = 0.2
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_sice+4,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice+4,k,1) = 0.2
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_sice+5,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice+5,k,1) = 0.2
-!	      END IF
-!	      IF (trcrn(i+1,j+1,nt_sice+6,k,1) <= 0.2) THEN
-!	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.2
-!	      END IF
-!	   END IF
-!        END DO
-!     END DO
-!  END DO
+  DO k=1,ncat
+     DO j = 1,ny_global
+        DO i = 1,nx_global
+	   IF (aicen(i+1,j+1,k,1) > c0) THEN
+	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
+		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
+	      END IF
+              IF (trcrn(i+1,j+1,nt_qsno,k,1) <= -1.79*10**8) THEN
+                 trcrn(i+1,j+1,nt_qsno,k,1) = -1.79*10**8
+              END IF
+!             To fix enthalpy problem?
+!              Ti=min(trcrn(i+1,j+1,nt_Tsfc,k,1),-1.0)
+!              Tmltz=-2.0
+
+!              trcrn(i+1,j+1,nt_qice,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+1,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+2,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+3,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+3,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+4,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+5,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+!              trcrn(i+1,j+1,nt_qice+6,k,1) = &
+!              -(rhoi * (cp_ice*(Tmltz-Ti) &
+!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
+
+              IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > -puny) THEN
+                 trcrn(i+1,j+1,nt_Tsfc,k,1) = -puny
+              END IF
+              IF (trcrn(i+1,j+1,nt_Tsfc,k,1) < -70.0) THEN
+                 trcrn(i+1,j+1,nt_Tsfc,k,1) = -70.0
+              END IF
+	      IF (trcrn(i+1,j+1,nt_sice,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice,k,1) = 0.2
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_sice+1,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+1,k,1) = 0.2
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_sice+2,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+2,k,1) = 0.2
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_sice+3,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+3,k,1) = 0.2
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_sice+4,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+4,k,1) = 0.2
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_sice+5,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+5,k,1) = 0.2
+	      END IF
+	      IF (trcrn(i+1,j+1,nt_sice+6,k,1) <= 0.2) THEN
+	         trcrn(i+1,j+1,nt_sice+6,k,1) = 0.2
+	      END IF
+	   END IF
+        END DO
+     END DO
+  END DO
 
 END SUBROUTINE physics_check
 

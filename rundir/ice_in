@@ -1,7 +1,7 @@
 &setup_nml
     days_per_year  = 365
   , use_leap_years = .false.
-  , year_init      = 2012
+  , year_init      = 1980
   , istep0         = 0
   , dt             = 3600.0
   , npt            = 8760
@@ -91,7 +91,7 @@
 /
 
 &dynamics_nml
-    kdyn            = 1
+    kdyn            = 2
   , ndte            = 120
   , revised_evp     = .false.
   , advection       = 'remap'
@@ -152,7 +152,7 @@
 &forcing_nml
     formdrag        = .true.
   , atmbndy         = 'default'
-  , fyear_init      = 2012
+  , fyear_init      = 1980
   , ycycle          = 4
   , atm_data_format = 'nc'
   , atm_data_type   = 'cpom'

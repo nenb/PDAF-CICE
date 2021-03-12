@@ -52,8 +52,8 @@ MODULE obs_ice_hi_m_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_hi_m=.TRUE.        !< Whether to assimilate this data type
-  LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
+  LOGICAL :: assim_ice_hi_m=.FALSE.        !< Whether to assimilate this data type
+  LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_hi_m=0.4      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
@@ -253,7 +253,8 @@ CONTAINS
        ELSE IF (mon == 12) THEN
           end_of_month = .TRUE.
        ELSE
-          end_of_month = .FALSE.
+        ! To assimilate every month change this to .TRUE.
+          end_of_month = .TRUE.
        END IF
     END IF
 

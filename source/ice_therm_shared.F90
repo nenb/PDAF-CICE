@@ -28,7 +28,7 @@
                          ! nilyr + 1 index is for bottom surface
 
       real (kind=dbl_kind), parameter, public :: &
-         ferrmax = 10000.0_dbl_kind    ! max allowed energy flux error (W m-2)
+         ferrmax = 100000.0_dbl_kind    ! max allowed energy flux error (W m-2)
                                       ! recommend ferrmax < 0.01 W m-2
 
       real (kind=dbl_kind), parameter, public :: &
