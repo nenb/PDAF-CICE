@@ -1881,7 +1881,9 @@ SUBROUTINE distrib_enthalpies(dim_p, state_p)
   USE ice_domain_size, only: nilyr
   USE ice_state, &
        ONLY: aicen, trcrn, nt_qice, nt_qsno, nt_Tsfc, nt_sice
-  USE ice_constants
+  USE ice_constants, &
+       ONLY: puny, rhos, rhoi, Lfresh, p5, cp_ice, c1, c2, &
+             pi, p5, c0, cp_ocn, depressT
   USE ice_zbgc_shared, only: min_salin
 
   IMPLICIT NONE
