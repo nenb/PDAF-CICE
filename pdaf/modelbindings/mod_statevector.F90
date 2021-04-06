@@ -2332,42 +2332,6 @@ SUBROUTINE physics_check()
               IF (trcrn(i+1,j+1,nt_qsno,k,1) <= -1.79*10**8) THEN
                  trcrn(i+1,j+1,nt_qsno,k,1) = -1.79*10**8
               END IF
-!             To fix enthalpy problem?
-!              Ti=min(trcrn(i+1,j+1,nt_Tsfc,k,1),-1.0)
-!              Tmltz=-2.0
-
-!              trcrn(i+1,j+1,nt_qice,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+1,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+2,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+3,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+3,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+4,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+5,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
-!              trcrn(i+1,j+1,nt_qice+6,k,1) = &
-!              -(rhoi * (cp_ice*(Tmltz-Ti) &
-!              + Lfresh*(c1-Tmltz/Ti) - cp_ocn*Tmltz))
-
               IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > -puny) THEN
                  trcrn(i+1,j+1,nt_Tsfc,k,1) = -puny
               END IF

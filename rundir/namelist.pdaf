@@ -9,10 +9,13 @@
  delt_obs=24,
  screen=2,
  type_forget=0,
- forget=1.0,
+ forget=0.98,
  local_range=200000.0,
  locweight=2,
  srange=200000.0,
+ assim_ice_concen=.true.,
  rms_ice_concen=0.1,
- file_asml='/storage/silver/cpom/fm828007/exp2_assim_conc.nc'
+ assim_ice_hi_m=.true.,
+ rms_ice_hi_m=0.4,
+ file_asml='/storage/silver/cpom/fm828007/exp7_assim_conc_hi_f98.nc'
 /

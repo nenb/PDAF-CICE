@@ -52,7 +52,7 @@ MODULE obs_ice_concen_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_concen=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_concen           !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_concen      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
@@ -64,7 +64,7 @@ MODULE obs_ice_concen_pdafomi
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 2012                ! Set to first year of assim
+  INTEGER :: year = 2007                ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***

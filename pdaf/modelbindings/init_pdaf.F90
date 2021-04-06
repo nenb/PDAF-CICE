@@ -31,7 +31,9 @@ SUBROUTINE init_pdaf()
        filename, type_trans, type_sqrt, delt_obs
   USE mod_statevector ! Routines and variables for state vector
   USE obs_ice_concen_pdafomi, &
-       ONLY: rms_ice_concen
+       ONLY: assim_ice_concen, rms_ice_concen
+  USE obs_ice_hi_m_pdafomi, &
+       ONLY: assim_ice_hi_m, rms_ice_hi_m
   USE output_netcdf_asml, &
        ONLY: file_asml
 
@@ -130,6 +132,9 @@ SUBROUTINE init_pdaf()
   delt_obs = 24     ! Number of time steps between analysis/assimilation steps
 
 ! *** specifications for observations ***
+  assim_ice_concen=.false.  
+  assim_ice_hi_m=.false.   ! Will observation be assimilated
+  rms_ice_hi_m = 0.4
   rms_ice_concen = 0.1    ! Observation error standard deviation
                           ! for the Gaussian distribution 
 ! *** Localization settings
