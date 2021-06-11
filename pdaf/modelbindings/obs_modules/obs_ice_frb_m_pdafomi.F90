@@ -52,7 +52,7 @@ MODULE obs_ice_frb_m_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_frb_m=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_frb_m=.FALSE.        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_frb_m=0.03      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.03  ! Standard deviation for Gaussian noise in twin experiment
@@ -235,34 +235,6 @@ CONTAINS
     ALLOCATE(obs_field2(nx_global, ny_global)) !zebra
     ALLOCATE(obs_field3(nx_global, ny_global)) !zebra
 
-    IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
-       day=mday-1
-       mon = month
-       end_of_month = .FALSE.
-    ELSE
-       mon=monthp
-       day=daymo(mon)
-      !end_of_month = .TRUE.
-      !winter_only code
-       IF (mon == 1) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 2) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 3) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 4) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 10) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 11) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 12) THEN
-          end_of_month = .TRUE.
-       ELSE
-          end_of_month = .FALSE.
-       END IF
-    END IF
-
     ! *******************************
     ! Only assimilate at end of month
     ! *******************************
@@ -272,8 +244,36 @@ CONTAINS
 !       thisobs%doassim = 0
 !    END IF
 
-    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
-    !WRITE(*,*) "DEBUG YEAR: ", year
+    IF (mday /= 1) THEN
+        day=mday-1
+        mon=month
+    ELSE
+        mon=monthp
+        day=daymo(mon)
+    END IF
+
+    IF (day == 15) THEN
+        end_of_month=.true.
+    ELSE
+        end_of_month=.false.
+    END IF
+
+    IF (mon == 5) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 6) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 7) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 8) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 9) THEN
+        end_of_month=.false.
+    END IF
+
     IF (day == 1 .AND. mon == 1) THEN
        IF (first_year .EQV. .FALSE.) THEN
           year = year + 1
@@ -517,7 +517,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i= 1, nx_global
           !ice_frb_m_field(i,j) = obs_field1(i,j)
-          IF (obs_field1(i,j) > 0.0 .AND. obs_field1(i,j) < 30.0 .AND. obs_field2(i,j) > 0.0) THEN !zebra
+          IF (obs_field1(i,j) >= 0.0 .AND. obs_field1(i,j) < 30.0 .AND. obs_field2(i,j) > 0.0) THEN !zebra
              ice_thickness_field(i,j) = obs_field1(i,j)/obs_field2(i,j)
              snow_thickness_field(i,j) = obs_field3(i,j)/obs_field2(i,j)
              ice_frb_m_field(i,j) = (ice_thickness_field(i,j)*(rhow-rhoi) &
@@ -532,7 +532,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_frb_m_field(i,j) >0.0 .AND. ice_frb_m_field(i,j) < 5.0) THEN
+          IF (ice_frb_m_field(i,j) >=0.0 .AND. ice_frb_m_field(i,j) < 5.0) THEN
              cnt = cnt + 1
           END IF
        END DO
@@ -591,7 +591,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_frb_m_field(i,j) >0.0 .AND. ice_frb_m_field(i,j) < 5.0) THEN
+          IF (ice_frb_m_field(i,j) >=0.0 .AND. ice_frb_m_field(i,j) < 5.0) THEN
              cnt = cnt + 1
              thisobs%id_obs_p(1, cnt)  = frb_m_offset + cnt0
              obs_p(cnt) = ice_frb_m_field(i,j)
@@ -818,11 +818,6 @@ CONTAINS
 
     ! Add noise to generate observations
     x = x + (noise_amp * noise)
-    !DO i=1,dim_state
-    !   IF (x(i) < 0.0) THEN
-    !      x(i) = 0.0
-    !   END IF
-    !END DO
 
     DEALLOCATE(noise)
 

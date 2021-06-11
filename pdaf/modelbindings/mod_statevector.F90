@@ -244,10 +244,12 @@ SUBROUTINE calc_hi_average()
      DO j = 1,ny_global
         DO i = 1,nx_global
            IF (aicen(i+1,j+1,k,1) > puny) THEN
-              hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k) + &
-                   (vicen(i+1,j+1,k,1) / aicen(i+1,j+1,k,1))
+              !hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k) + &
+                   !(vicen(i+1,j+1,k,1) / aicen(i+1,j+1,k,1))
+              hi_d(i+1,j+1,k) = vicen(i+1,j+1,k,1)/aicen(i+1,j+1,k,1)
            ELSE
-	      hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k)
+	      !hi_d(i+1,j+1,k) = hi_d(i+1,j+1,k)
+              hi_d(i+1,j+1,k) = c0
  	   END IF
         END DO
      END DO
@@ -262,11 +264,11 @@ SUBROUTINE calc_hi_average()
            temp_two=temp_two+aicen(i+1,j+1,k,1)
         END DO
         IF (temp_one > puny .AND. temp_two > puny) THEN
-           hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + (temp_one/temp_two)
-           !hi_grid_d(i+1,j+1) = temp_one/temp_two !keep for daily average
+           !hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + (temp_one/temp_two)
+           hi_grid_d(i+1,j+1) = temp_one/temp_two !keep for daily average
         ELSE
-	   hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
-	   !hi_grid_d(i+1,j+1) = 0 !keep for daily average
+	   !hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
+	   hi_grid_d(i+1,j+1) = c0 !keep for daily average
         END IF
      END DO
   END DO
@@ -290,12 +292,12 @@ SUBROUTINE calc_hi_average()
            temp_five = temp_three/temp_two !hs
            temp_six = temp_four * (rhow - rhoi) !hi(pw-pi)
            temp_seven = temp_five * rhos !hsps
-           frb_grid_d(i+1,j+1) = frb_grid_d(i+1,j+1) + ((temp_six+temp_seven)/rhow) 
+           !frb_grid_d(i+1,j+1) = frb_grid_d(i+1,j+1) + ((temp_six+temp_seven)/rhow) 
            !for daily ave:
-           !hi_grid_d(i+1,j+1) = temp_one/temp_two
+           frb_grid_d(i+1,j+1) = (temp_six+temp_seven)/rhow
         ELSE
-	   frb_grid_d(i+1,j+1) = frb_grid_d(i+1,j+1) !keep for mon ave
-	   !hi_grid_d(i+1,j+1) = 0
+	   !frb_grid_d(i+1,j+1) = frb_grid_d(i+1,j+1) !keep for mon ave
+	   frb_grid_d(i+1,j+1) = c0
         END IF
      END DO
   END DO
@@ -303,20 +305,20 @@ SUBROUTINE calc_hi_average()
   DO k=1,ncat
      DO j=1,ny_global
         DO i=1,nx_global
-           hi_dist(i+1,j+1,k) = hi_d(i+1,j+1,k) / REAL(true_day)
+           hi_dist(i+1,j+1,k) = hi_d(i+1,j+1,k)! / REAL(true_day)
         END DO
      END DO
   END DO
 
   DO j=1,ny_global
      DO i=1,nx_global
-        hi_m(i+1,j+1) = hi_grid_d(i+1,j+1) / REAL(true_day)
+        hi_m(i+1,j+1) = hi_grid_d(i+1,j+1)! / REAL(true_day)
      END DO
   END DO
 
   DO j=1,ny_global
      DO i=1,nx_global
-        frb_m(i+1,j+1) = frb_grid_d(i+1,j+1) / REAL(true_day)
+        frb_m(i+1,j+1) = frb_grid_d(i+1,j+1)! / REAL(true_day)
      END DO
   END DO
 
@@ -673,7 +675,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
   USE mod_assimilation, &
        ONLY: istate_dir
   USE mod_parallel_pdaf, &
-       ONLY: abort_parallel
+       ONLY: abort_parallel, task_id
 
   IMPLICIT NONE
 
@@ -690,6 +692,7 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
   INTEGER :: pos(2),cnt(2)           ! Vectors for 2D reading fields
   CHARACTER(len=100) :: istate_ncfile     ! File holding initial state estimate
   CHARACTER(len=100) :: year              ! Year of initial state estimate
+  CHARACTER(len=3) :: ensstr
   REAL, ALLOCATABLE :: var2d(:,:)         ! Array for reading state variables
 
 
@@ -701,7 +704,9 @@ SUBROUTINE fill2d_ensarray(dim_p, dim_ens, ens_p)
      !To change to using EOFs, comment out the + member - 1 
      yr = year_init! + member - 1
      WRITE(year, '(i4)') yr
-     istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
+     write(ensstr,'(i3.3)') member
+     istate_ncfile= trim(istate_dir)//'iced'//trim(ensstr)//'.'//trim(year)//'-01-01-00000.nc'
+     !istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
      s = 1
      stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
 
@@ -797,7 +802,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
   USE mod_assimilation, &
        ONLY: istate_dir
   USE mod_parallel_pdaf, &
-       ONLY: abort_parallel
+       ONLY: abort_parallel, task_id
 
   IMPLICIT NONE
 
@@ -814,6 +819,7 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
   INTEGER :: id_3dvar                   ! IDs for fields
   CHARACTER(len=100) :: istate_ncfile     ! File holding initial state estimate
   CHARACTER(len=100) :: year              ! Year of initial state estimate
+  CHARACTER(len=3) :: ensstr
   REAL, ALLOCATABLE :: var3d(:,:,:)       ! Array for reading state variables
 
 
@@ -824,8 +830,11 @@ SUBROUTINE fill3d_ensarray(dim_p, dim_ens, ens_p)
 
      !To change to using EOFs, comment out the "+ member - 1" 
      yr = year_init! + member - 1
+     WRITE(*,*) 'CHECKYEAR', yr 
      WRITE(year, '(i4)') yr
-     istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
+     write(ensstr,'(i3.3)') member
+     istate_ncfile= trim(istate_dir)//'iced'//trim(ensstr)//'.'//trim(year)//'-01-01-00000.nc'
+     !istate_ncfile= trim(istate_dir)//'iced.'//trim(year)//'-01-01-00000.nc'
      s = 1
      stat(s) = NF90_OPEN(istate_ncfile , NF90_NOWRITE, ncid_in)
 
@@ -2393,10 +2402,10 @@ SUBROUTINE physics_check()
         DO i = 1,nx_global
 	   IF (aicen(i+1,j+1,k,1) > c0) THEN
 	      IF (trcrn(i+1,j+1,nt_qsno,k,1) >= -rhos*Lfresh) THEN
-		 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
+                 trcrn(i+1,j+1,nt_qsno,k,1) = -rhos*Lfresh
 	      END IF
-              IF (trcrn(i+1,j+1,nt_qsno,k,1) <= -1.79*10**8) THEN
-                 trcrn(i+1,j+1,nt_qsno,k,1) = -1.79*10**8
+              IF (trcrn(i+1,j+1,nt_qsno,k,1) <= -1.5*10**8) THEN
+                 trcrn(i+1,j+1,nt_qsno,k,1) = -1.5*10**8
               END IF
               IF (trcrn(i+1,j+1,nt_Tsfc,k,1) > -puny) THEN
                  trcrn(i+1,j+1,nt_Tsfc,k,1) = -puny
