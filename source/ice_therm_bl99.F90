@@ -149,7 +149,7 @@
          nmat = nslyr + nilyr + 1  ! matrix dimension
 
       real (kind=dbl_kind), parameter :: &
-         Tsf_errmax = 5.e-4_dbl_kind ! max allowed error in Tsf
+         Tsf_errmax = 0.01 !5.e-4_dbl_kind ! max allowed error in Tsf
                                      ! recommend Tsf_errmax < 0.01 K
 
       integer (kind=int_kind) :: &

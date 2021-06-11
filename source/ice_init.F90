@@ -654,8 +654,8 @@
       ! Overwrite CICE namelist and give each member different year
       !year_init = year_init + task_id
       !fyear_init = fyear_init + task_id
-      !write(ensstr,'(i3.3)') task_id
-      !write(restart_file,'(a)') trim(restart_file)//trim(ensstr)
+      write(ensstr,'(i3.3)') task_id
+      write(restart_file,'(a)') trim(restart_file)//trim(ensstr)
 #endif
       call broadcast_scalar(days_per_year,      master_task)
       call broadcast_scalar(use_leap_years,     master_task)

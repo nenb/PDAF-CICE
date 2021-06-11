@@ -22,6 +22,8 @@ SUBROUTINE assimilate_pdaf()
        ONLY: mype_world, abort_parallel
   USE mod_assimilation, &      ! Variables for assimilation
        ONLY: filtertype
+    USE ice_calendar, &
+	 ONLY: nyr,month
 
   IMPLICIT NONE
 
@@ -60,6 +62,45 @@ SUBROUTINE assimilate_pdaf()
   CALL PDAF_get_localfilter(localfilter)
 
   IF (localfilter==1) THEN
+     ! here define dates for changing forgetting factor
+     !IF (nyr /= 1) THEN
+     !   IF (month == 1) THEN
+     !      CALL PDAF_reset_forget(0.99)
+     !   END IF
+     !   IF (month == 2) THEN
+     !      CALL PDAF_reset_forget(0.99)
+     !   END IF
+     !   IF (month == 3) THEN
+     !      CALL PDAF_reset_forget(0.99)
+     !   END IF
+     !   IF (month == 4) THEN
+     !      CALL PDAF_reset_forget(0.95)
+     !   END IF
+     !   IF (month == 5) THEN
+     !      CALL PDAF_reset_forget(0.95)
+     !   END IF
+     !   IF (month == 6) THEN
+     !      CALL PDAF_reset_forget(0.95)
+     !   END IF
+     !   IF (month == 7) THEN
+     !      CALL PDAF_reset_forget(0.95)
+     !   END IF
+     !   IF (month == 8) THEN
+     !      CALL PDAF_reset_forget(0.95)
+     !   END IF
+     !    IF (month == 9) THEN
+     !      CALL PDAF_reset_forget(0.95)
+     !   END IF
+     !   IF (month == 10) THEN
+     !      CALL PDAF_reset_forget(0.99)
+     !   END IF
+     !   IF (month == 11) THEN
+     !      CALL PDAF_reset_forget(0.99)
+     !   END IF
+     !   IF (month == 12) THEN
+     !      CALL PDAF_reset_forget(0.99)
+     !   END IF
+     !END IF
      CALL PDAFomi_assimilate_local(collect_state_pdaf,&
           distribute_state_pdaf, init_dim_obs_pdafomi, obs_op_pdafomi,&
           prepoststep_ens_pdaf, init_n_domains_pdaf, init_dim_l_pdaf,&

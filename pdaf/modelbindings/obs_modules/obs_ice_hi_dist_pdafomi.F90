@@ -52,10 +52,10 @@ MODULE obs_ice_hi_dist_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_hi_dist=.FALSE.        !< Whether to assimilate this data type
-  LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_hi_dist=0.5      !< Observation error standard deviation (for constant errors)
-  REAL    :: noise_amp = 0.5  ! Standard deviation for Gaussian noise in twin experiment
+  LOGICAL :: assim_ice_hi_dist=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
+  REAL    :: rms_ice_hi_dist=0.4      !< Observation error standard deviation (for constant errors)
+  REAL    :: noise_amp = 0.4  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
@@ -64,7 +64,7 @@ MODULE obs_ice_hi_dist_pdafomi
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 1980                 ! Set to first year of assim
+  INTEGER :: year = 2012                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -229,45 +229,33 @@ CONTAINS
     ! Arrays for aicen and vicen
     ALLOCATE(obs_field1(nx_global, ny_global, ncat))
 
-    IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
-       day=mday-1
-       mon = month
-       end_of_month = .FALSE.
-    ELSE
-       mon=monthp
-       day=daymo(mon)
-       !end_of_month = .TRUE.
-!      winter_only code
-       IF (mon == 1) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 2) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 3) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 4) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 10) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 11) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 12) THEN
-          end_of_month = .TRUE.
-       ELSE
-          end_of_month = .FALSE.
-       END IF
+    IF (mday /= 1) THEN
+        day=mday-1
+        mon=month
     END IF
 
-    ! *******************************
-    ! Only assimilate at end of month
-    ! *******************************
-!    IF (end_of_month .EQV. TRUE.) THEN
-!       thisobs%doassim = 1
-!    ELSE
-!       thisobs%doassim = 0
-!    END IF
+    IF (day == 15) THEN
+        end_of_month=.true.
+    ELSE
+        end_of_month=.false.
+    END IF
 
-    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
-    !WRITE(*,*) "DEBUG YEAR: ", year
+    IF (mon == 5) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 6) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 7) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 8) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 9) THEN
+        end_of_month=.false.
+    END IF
+
     IF (day == 1 .AND. mon == 1) THEN
        IF (first_year .EQV. .FALSE.) THEN
           year = year + 1
@@ -279,9 +267,6 @@ CONTAINS
     WRITE(montht,'(i2.2)') mon
     WRITE(dayt,'(i2.2)') day
     file_ice_hi_dist='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
-    !TEMP CODE TO ASSIM DAILY
-    !WRITE(file_ice_hi_m,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht) &
-    !//'-'//trim(dayt)//'.nc'
 
     WRITE(file_ice_hi_dist,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht)//'.nc'
     WRITE(*,*) 'FILE ICE HI_DIST: ', file_ice_hi_dist
@@ -397,7 +382,7 @@ CONTAINS
     DO k = 1, ncat
        DO j = 1, ny_global
           DO i = 1, nx_global
-             IF (ice_hi_dist_field(i,j,k) >0.0 .AND. ice_hi_dist_field(i,j,k) < 20.0) THEN 
+             IF (ice_hi_dist_field(i,j,k) >=0.0 .AND. ice_hi_dist_field(i,j,k) < 20.0) THEN 
                 cnt = cnt + 1
              END IF
           END DO
@@ -456,7 +441,7 @@ CONTAINS
        DO j = 1, ny_global
           DO i = 1, nx_global
              cnt0 = cnt0 + 1
-             IF (ice_hi_dist_field(i,j,k) > 0.0 &
+             IF (ice_hi_dist_field(i,j,k) >= 0.0 &
              .AND. ice_hi_dist_field(i,j,k) < 20.0) THEN
                 cnt = cnt + 1
                 thisobs%id_obs_p(1, cnt) = hi_dist_offset + cnt0
@@ -666,8 +651,8 @@ CONTAINS
        WRITE (*,'(9x, a)') '--- Initialize seed for ice hi_dist noise'
        iseed(1)=2*160+1
        iseed(2)=2*240+5
-       iseed(3)=2*60+7
-       iseed(4)=2*20+9
+       iseed(3)=2*40+7
+       iseed(4)=2*80+9
        firststep=0
     ENDIF
 

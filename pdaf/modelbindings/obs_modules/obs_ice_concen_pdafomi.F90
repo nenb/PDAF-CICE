@@ -64,7 +64,7 @@ MODULE obs_ice_concen_pdafomi
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 2007                ! Set to first year of assim
+  INTEGER :: year = 2012                ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -178,7 +178,7 @@ CONTAINS
     USE mod_statevector, &
          ONLY: aicen_offset
     USE ice_calendar, &
-	 ONLY: mday, month, nyr, year_init, idate, monthp, daymo
+	 ONLY: yday, mday, month, nyr, year_init, idate, monthp, daymo
 
     IMPLICIT NONE
 
@@ -197,6 +197,7 @@ CONTAINS
     INTEGER :: status                      ! Status flag
     INTEGER :: mon			   ! month (mm)
     INTEGER :: day  			   ! day (dd)
+    LOGICAL :: no_assim                ! if we will assimilate
     REAL, ALLOCATABLE :: obs_field1(:,:,:)    ! Observation field read from file
     REAL, ALLOCATABLE :: ice_concen_field(:,:) ! Combination of aicen and vicen
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
@@ -227,6 +228,18 @@ CONTAINS
 
     ! Arrays for aicen and vicen
     ALLOCATE(obs_field1(nx_global, ny_global, ncat))
+
+    ! Temp Code to not assim in first year of model run
+
+    !IF (nyr == 1) THEN
+    !   no_assim=.true.
+    !ELSE
+    !   IF (yday > 1) THEN
+    !      no_assim=.false.
+    !   ELSE
+    !      no_assim=.true.
+    !   END IF
+    !END IF
 
     !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
     IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
@@ -284,8 +297,18 @@ CONTAINS
        pos_nc = (/ 1, 1, 1 /)
        cnt_nc = (/ nx_global , ny_global, ncat /)
        s = s + 1
+       IF (no_assim .EQV. .FALSE.) THEN
        stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
-
+       ELSE
+         DO i=1,nx_global
+	     DO j=1,ny_global
+                DO k=1,ncat
+		   obs_field1(i,j,k)=-1
+                END DO
+	     END DO
+	  END DO
+       END IF
+       
        DO i = 1, s
           IF (stat(i) .NE. NF90_NOERR) THEN
              WRITE(*,'(/9x, a, 3x, a)') &
@@ -352,7 +375,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_concen_field(i,j) >0.0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
+          IF (ice_concen_field(i,j) >=0.0 .AND. ice_concen_field(i,j) <= 1.0) THEN 
              cnt = cnt + 1
           END IF
        END DO
@@ -409,7 +432,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_concen_field(i,j) >0.0 .AND. ice_concen_field(i,j) <=1.0) THEN
+          IF (ice_concen_field(i,j) >=0.0 .AND. ice_concen_field(i,j) <=1.0) THEN
              cnt = cnt + 1
              DO k = 1, ncat
                 ! Compute locations in state vector of (i,j,:) indices

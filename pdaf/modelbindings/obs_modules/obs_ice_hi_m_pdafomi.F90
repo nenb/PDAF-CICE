@@ -64,7 +64,7 @@ MODULE obs_ice_hi_m_pdafomi
   '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 2007                 ! Set to first year of assim
+  INTEGER :: year = 2012                 ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -178,7 +178,7 @@ CONTAINS
     USE mod_statevector, &
          ONLY: hi_m_offset
     USE ice_calendar, &
-	 ONLY: mday, month, nyr, year_init, idate, monthp, daymo
+	 ONLY: yday, mday, month, nyr, year_init, idate, monthp, daymo
 
     IMPLICIT NONE
 
@@ -231,32 +231,43 @@ CONTAINS
     ALLOCATE(obs_field1(nx_global, ny_global))
     ALLOCATE(obs_field2(nx_global, ny_global)) !zebra
 
-    IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
-       day=mday-1
-       mon = month
-       end_of_month = .FALSE.
-    ELSE
-       mon=monthp
-       day=daymo(mon)
-       IF (mon == 1) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 2) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 3) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 4) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 10) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 11) THEN
-          end_of_month = .TRUE.
-       ELSE IF (mon == 12) THEN
-          end_of_month = .TRUE.
-       ELSE
-        ! To assimilate every month change this to .TRUE.
-          end_of_month = .TRUE.
-       END IF
-    END IF
+    !IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
+    !   day=mday-1
+    !   mon = month
+    !   end_of_month = .FALSE.
+    !ELSE
+    !   mon=monthp
+    !   day=daymo(mon)
+    !   IF (mon == 1) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE IF (mon == 2) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE IF (mon == 3) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE IF (mon == 4) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE IF (mon == 10) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE IF (mon == 11) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE IF (mon == 12) THEN
+    !      end_of_month = .TRUE.
+    !   ELSE
+    !    ! To assimilate every month change this to .TRUE.
+    !      end_of_month = .TRUE.
+    !   END IF
+    !END IF
+
+    ! Temp code to not assim in first year when assimilating end of month
+    !IF (nyr == 1) THEN
+    !   end_of_month=.false.
+    !ELSE
+    !   IF (yday < 2) THEN
+    !      end_of_month=.false.
+    !   END IF
+    !END IF
+
+    ! This code is for assimilating on the 15th of the month
 
     ! *******************************
     ! Only assimilate at end of month
@@ -267,8 +278,41 @@ CONTAINS
 !       thisobs%doassim = 0
 !    END IF
 
-    !year=(nyr+year_init-1)   !year = (nyr+year_init-1)*1000
-    !WRITE(*,*) "DEBUG YEAR: ", year
+
+    IF (mday /= 1) THEN !PDAF reads days that are one day later than CICE has run
+       day=mday-1
+       mon = month
+    ELSE
+       mon=monthp
+       day=daymo(mon)
+    END IF
+
+    IF (day == 15) THEN
+       end_of_month=.true.
+    ELSE
+       end_of_month=.false.
+    END IF
+
+    !IF (nyr == 1) THEN
+    !   end_of_month=.false.
+    !END IF
+
+    IF (mon == 5) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 6) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 7) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 8) THEN
+        end_of_month=.false.
+    END IF
+    IF (mon == 9) THEN
+        end_of_month=.false.
+    END IF
+
     IF (day == 1 .AND. mon == 1) THEN
        IF (first_year .EQV. .FALSE.) THEN
           year = year + 1
@@ -276,6 +320,7 @@ CONTAINS
           first_year = .FALSE.
        END IF
     END IF
+    
     WRITE(yeart,'(i4.4)') year
     WRITE(montht,'(i2.2)') mon
     WRITE(dayt,'(i2.2)') day
@@ -444,7 +489,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i= 1, nx_global
           !ice_hi_m_field(i,j) = obs_field1(i,j)
-          IF (obs_field1(i,j) > 0.0 .AND. obs_field1(i,j) < 30.0 .AND. obs_field2(i,j) > 0.0) THEN !zebra
+          IF (obs_field1(i,j) >= 0.0 .AND. obs_field1(i,j) < 30.0 .AND. obs_field2(i,j) > 0.0) THEN !zebra
              ice_hi_m_field(i,j) = obs_field1(i,j)/obs_field2(i,j)
           ELSE
              ice_hi_m_field(i,j) = -1
@@ -456,7 +501,7 @@ CONTAINS
     cnt = 0
     DO j = 1, ny_global
        DO i = 1, nx_global
-          IF (ice_hi_m_field(i,j) >0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
+          IF (ice_hi_m_field(i,j) >=0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
              cnt = cnt + 1
           END IF
        END DO
@@ -515,7 +560,7 @@ CONTAINS
     DO j = 1, ny_global
        DO i = 1, nx_global
           cnt0 = cnt0 + 1
-          IF (ice_hi_m_field(i,j) >0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
+          IF (ice_hi_m_field(i,j) >=0.0 .AND. ice_hi_m_field(i,j) < 30.0) THEN
              cnt = cnt + 1
              thisobs%id_obs_p(1, cnt)  = hi_m_offset + cnt0
              obs_p(cnt) = ice_hi_m_field(i,j)
@@ -739,11 +784,6 @@ CONTAINS
 
     ! Add noise to generate observations
     x = x + (noise_amp * noise)
-    !DO i=1,dim_state
-    !   IF (x(i) < 0.0) THEN
-    !      x(i) = 0.0
-    !   END IF
-    !END DO
 
     DEALLOCATE(noise)
 
