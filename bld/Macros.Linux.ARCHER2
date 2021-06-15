@@ -1,0 +1,32 @@
+#==============================================================================
+# Makefile macros for ARCHER2
+# Adapted from CICE Makefile by David Schroeder (May 27 2021)
+#==============================================================================
+
+INCLDIR    := -I. -I$(NETCDF_DIR)/include -I$(HDF5_DIR)/include -I$(PDAF_INCL)
+SLIBS      := -L$(HDF5_DIR)/lib -L$(NETCDF_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz
+ULIBS      := -L$(PDAF_LIB) -lpdaf-d 
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional
+CPPDEFS    := -DLINUX -DUSE_PDAF
+CFLAGS     := -c -O2
+FC         := ftn
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+FFLAGS     := -em -O 1 -s integer32 -s real64 -hnoomp
+MOD_SUFFIX := mod
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+CPPDEFS    :=  $(CPPDEFS) -DNXGLOB=$(NXGLOB) -DNYGLOB=$(NYGLOB) \
+                -DBLCKX=$(BLCKX) -DBLCKY=$(BLCKY) -DMXBLCKS=$(MXBLCKS) \
+                -DNICELYR=$(NICELYR) -DNSNWLYR=$(NSNWLYR) -DNICECAT=$(NICECAT) \
+                -DTRAGE=$(TRAGE) -DTRFY=$(TRFY) -DTRLVL=$(TRLVL) -DTRPND=$(TRPND) \
+                -DTRBRI=$(TRBRI) -DNTRAERO=$(NTRAERO) -DNBGCLYR=$(NBGCLYR) \
+                -DTRBGCS=$(TRBGCS) -DNUMIN=$(NUMIN) -DNUMAX=$(NUMAX)
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+CPPDEFS    :=  $(CPPDEFS) -Dncdf

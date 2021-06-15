@@ -4,7 +4,7 @@
 ### You will need to create a Makefile Macro in bld/ and a run_ice script 
 ### in input_templates/.
 #setenv SITE LANL.conejo   # also works for mustang
-setenv SITE UoR.racc.pdaf
+setenv SITE $MY_SITE
 #setenv SITE LANL.bigsuze
 
 ### SYSTEM_USERDIR is predefined on ORNL machines
@@ -98,7 +98,7 @@ else
    cp -f $CBLD/Makefile.std $CBLD/Makefile
 endif
 setenv ARCH $ARCH.$SITE
-setenv PDAF_ARCH linux_gfortran_mpich
+setenv PDAF_ARCH $MY_PDAF_ARCH
 
 #Set location of PDAF library and makefile
 setenv PDAF_LIB $SRCDIR/pdaf/lib
@@ -113,7 +113,7 @@ if ( $RES == 'cpom') then
    cp $SRCDIR/input_templates/${RES}_$HEMI/grid grid
    cp $SRCDIR/input_templates/${RES}_$HEMI/kmt kmt
    if !(-e ice_in) cp $SRCDIR/input_templates/${RES}_$HEMI/ice_in .
-   cp $SRCDIR/input_templates/${RES}_$HEMI/iced_$RES* .
+#   cp $SRCDIR/input_templates/${RES}_$HEMI/iced_$RES* .
    if !(-e ice.restart_file) cp $SRCDIR/input_templates/${RES}_$HEMI/ice.restart_file .
 else
    cd $RSTDIR
@@ -121,7 +121,7 @@ else
    cp $SRCDIR/input_templates/$RES/iced_$RES* .
    if !(-e ice.restart_file) cp $SRCDIR/input_templates/$RES/ice.restart_file .
 endif
-if !(-e run_ice) cp $SRCDIR/input_templates/run_ice.$ARCH run_ice
+#if !(-e run_ice) cp $SRCDIR/input_templates/run_ice.$ARCH run_ice
 
 cd $OBJDIR
 
