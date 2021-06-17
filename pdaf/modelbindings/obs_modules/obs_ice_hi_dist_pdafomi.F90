@@ -52,16 +52,15 @@ MODULE obs_ice_hi_dist_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ice_hi_dist=.TRUE.        !< Whether to assimilate this data type
+  LOGICAL :: assim_ice_hi_dist        !< Whether to assimilate this data type
   LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
-  REAL    :: rms_ice_hi_dist=0.4      !< Observation error standard deviation (for constant errors)
+  REAL    :: rms_ice_hi_dist      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.4  ! Standard deviation for Gaussian noise in twin experiment
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
   LOGICAL            :: obs_file=.TRUE. ! Are observations read from file or manually created
-  CHARACTER(len=200) :: file_ice_hi_dist = &
-  '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+  CHARACTER(len=200) :: file_ice_hi_dist
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
   INTEGER :: year = 2012                 ! Set to first year of assim
@@ -206,8 +205,6 @@ CONTAINS
     CHARACTER(len=4) :: yeart			   ! year in strings
     CHARACTER(len=2) :: montht			   ! month in strings
     CHARACTER(len=2) :: dayt			   ! day in strings
-    CHARACTER(len=200) :: file_ice_directory = &
-    '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
 
 ! *********************************************
 ! *** Initialize full observation dimension ***
@@ -266,9 +263,7 @@ CONTAINS
     WRITE(yeart,'(i4.4)') year
     WRITE(montht,'(i2.2)') mon
     WRITE(dayt,'(i2.2)') day
-    file_ice_hi_dist='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
-
-    WRITE(file_ice_hi_dist,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht)//'.nc'
+    WRITE(file_ice_hi_dist,'(a)') trim(file_ice_hi_dist)//trim(yeart)//'-'//trim(montht)//'.nc'
     WRITE(*,*) 'FILE ICE HI_DIST: ', file_ice_hi_dist
  !  ! We read in fields from a file
     IF (obs_file) THEN
@@ -302,8 +297,8 @@ CONTAINS
        ! Read state variable data from file
        pos_nc = (/ 1, 1, 1 /)
        cnt_nc = (/ nx_global , ny_global, ncat /)
-       s = s + 1
        IF (end_of_month .EQV. .TRUE.) THEN
+          s = s + 1
           stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
        ELSE
          DO i=1,nx_global

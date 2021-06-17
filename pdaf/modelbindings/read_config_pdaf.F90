@@ -19,9 +19,13 @@ SUBROUTINE read_config_pdaf()
        type_forget, forget, local_range, locweight, srange,&
        istate_dir
   USE obs_ice_concen_pdafomi, &
-       ONLY: assim_ice_concen, rms_ice_concen
+       ONLY: assim_ice_concen, rms_ice_concen, file_ice_concen
   USE obs_ice_hi_m_pdafomi, &
-       ONLY: assim_ice_hi_m, rms_ice_hi_m
+       ONLY: assim_ice_hi_m, rms_ice_hi_m, file_ice_hi_m
+  USE obs_ice_hi_dist_pdafomi, &
+       ONLY: assim_ice_hi_dist, rms_ice_hi_dist, file_ice_hi_dist
+  USE obs_ice_frb_m_pdafomi, &
+       ONLY: assim_ice_frb_m, rms_ice_frb_m, file_ice_frb_m
   USE output_netcdf_asml, &
        ONLY: file_asml
 
@@ -34,7 +38,10 @@ SUBROUTINE read_config_pdaf()
   NAMELIST /pdaf_nml/ istate_dir, filtertype, subtype, dim_ens,& 
        delt_obs, screen, type_forget, forget,&
        local_range, locweight, srange, assim_ice_concen,&
-       rms_ice_concen, assim_ice_hi_m, rms_ice_hi_m, file_asml
+       rms_ice_concen, file_ice_concen, assim_ice_hi_m, rms_ice_hi_m,&
+       file_ice_hi_m, assim_ice_hi_dist, rms_ice_hi_dist, file_ice_hi_dist,&
+       assim_ice_frb_m, rms_ice_frb_m, file_ice_frb_m,&
+       file_asml
 
 ! ****************************************************
 ! ***   Initialize PDAF parameters from namelist   ***
@@ -62,10 +69,18 @@ SUBROUTINE read_config_pdaf()
     WRITE (*,'(5x,a,es10.2)') 'local_range  ', local_range
     WRITE (*,'(5x,a,i10)')    'locweight    ', locweight
     WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
-    WRITE (*,*)               'assim_ice_concen', assim_ice_concen
-    WRITE (*,'(5x,a,es10.2)') 'rms_ice_concen    ', rms_ice_concen
-    WRITE (*,*)               'assim_ice_hi_m', assim_ice_concen
-    WRITE (*,'(5x,a,es10.2)') 'rms_ice_hi_m    ', rms_ice_hi_m
+    WRITE (*,'(5x,a,l1)')     'assim_ice_concen ', assim_ice_concen
+    WRITE (*,'(5x,a,es10.2)') 'rms_ice_concen   ', rms_ice_concen
+    WRITE (*,'(5x,a,a)')      'file_ice_concen  ', file_ice_concen
+    WRITE (*,'(5x,a,l1)')     'assim_ice_hi_m   ', assim_ice_hi_m
+    WRITE (*,'(5x,a,es10.2)') 'rms_ice_hi_m     ', rms_ice_hi_m
+    WRITE (*,'(5x,a,a)')      'file_ice_hi_m    ', file_ice_hi_m
+    WRITE (*,'(5x,a,l1)')     'assim_ice_hi_dist', assim_ice_hi_dist
+    WRITE (*,'(5x,a,es10.2)') 'rms_ice_hi_dist  ', rms_ice_hi_dist
+    WRITE (*,'(5x,a,a)')      'file_ice_hi_dist ', file_ice_hi_dist
+    WRITE (*,'(5x,a,l1)')     'assim_ice_frb_m  ', assim_ice_frb_m
+    WRITE (*,'(5x,a,es10.2)') 'rms_ice_frb_m    ', rms_ice_frb_m
+    WRITE (*,'(5x,a,a)')      'file_ice_frb_m   ', file_ice_frb_m
     WRITE (*,'(5x,a,a)')      'istate_dir   ', istate_dir
     WRITE (*,'(5x,a,a)')      'file_asml    ', file_asml
     WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'

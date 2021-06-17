@@ -55,7 +55,7 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
 
   time = 0.0          ! Not used in this implementation
 
-  IF (stepnow + nsteps <= npt) THEN
+  IF (stepnow + delt_obs <= npt) THEN
      ! *** During the assimilation process ***
      nsteps = delt_obs   ! This assumes a constant time step interval
      doexit = 0          ! Not used in this implementation

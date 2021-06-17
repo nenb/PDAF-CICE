@@ -60,11 +60,10 @@ MODULE obs_ice_concen_pdafomi
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
   LOGICAL            :: obs_file=.TRUE. ! Are observations read from file or manually created
-  CHARACTER(len=200) :: file_ice_concen = &
-  '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
+  CHARACTER(len=200) :: file_ice_concen
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 2012                ! Set to first year of assim
+  INTEGER :: year = 1980                ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -197,7 +196,7 @@ CONTAINS
     INTEGER :: status                      ! Status flag
     INTEGER :: mon			   ! month (mm)
     INTEGER :: day  			   ! day (dd)
-    LOGICAL :: no_assim                ! if we will assimilate
+    LOGICAL :: no_assim = .FALSE.          ! if we will assimilate
     REAL, ALLOCATABLE :: obs_field1(:,:,:)    ! Observation field read from file
     REAL, ALLOCATABLE :: ice_concen_field(:,:) ! Combination of aicen and vicen
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
@@ -206,8 +205,6 @@ CONTAINS
     CHARACTER(len=4) :: yeart			   ! year in strings
     CHARACTER(len=2) :: montht			   ! month in strings
     CHARACTER(len=2) :: dayt			   ! day in strings
-    CHARACTER(len=200) :: file_ice_directory = &
-    '/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
 
 ! *********************************************
 ! *** Initialize full observation dimension ***
@@ -260,8 +257,7 @@ CONTAINS
     WRITE(montht,'(i2.2)') mon
     WRITE(dayt,'(i2.2)') day
     WRITE(*,*) "IS IT FIRST DAY?", first_year
-    !file_ice_concen='/storage/silver/cpom/fm828007/CICE/cice_r1155_pondsnow/rundir_test/history/iceh.'
-    WRITE(file_ice_concen,'(a)') trim(file_ice_directory)//trim(yeart)//'-'//trim(montht) &
+    WRITE(file_ice_concen,'(a)') trim(file_ice_concen)//trim(yeart)//'-'//trim(montht) &
     //'-'//trim(dayt)//'.nc'
     WRITE(*,*) 'FILE ICE CONCEN: ', file_ice_concen
  !  ! We read in fields from a file
