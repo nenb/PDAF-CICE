@@ -53,7 +53,7 @@ MODULE obs_ice_concen_pdafomi
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
   LOGICAL :: assim_ice_concen           !< Whether to assimilate this data type
-  LOGICAL :: twin_experiment=.TRUE.           ! Whether to perform an identical twin experiment
+  LOGICAL :: twin_experiment=.FALSE.           ! Whether to perform an identical twin experiment
   REAL    :: rms_ice_concen      !< Observation error standard deviation (for constant errors)
   REAL    :: noise_amp = 0.1  ! Standard deviation for Gaussian noise in twin experiment
 
@@ -63,7 +63,7 @@ MODULE obs_ice_concen_pdafomi
   CHARACTER(len=200) :: file_ice_concen
   LOGICAL :: first_year = .TRUE.         ! First year of assimilation? Needed to
 !choose correct years to assimilate
-  INTEGER :: year = 1980                ! Set to first year of assim
+  INTEGER :: year = 2012                ! Set to first year of assim
 
 ! ***********************************************************************
 ! *** The following two data types are used in PDAFomi                ***
@@ -177,7 +177,7 @@ CONTAINS
     USE mod_statevector, &
          ONLY: aicen_offset
     USE ice_calendar, &
-	 ONLY: yday, mday, month, nyr, year_init, idate, monthp, daymo
+	 ONLY: yday, idate, mday, month, nyr, year_init, monthp, daymo
 
     IMPLICIT NONE
 
@@ -190,14 +190,15 @@ CONTAINS
     INTEGER :: cnt, cnt0                   ! Counters
     INTEGER :: stat(20000)                 ! Status flag for NetCDF commands
     INTEGER :: ncid_in                     ! ID for NetCDF file
-    INTEGER :: id_3dvar                    ! IDs for fields
+    INTEGER :: id_2dvar                    ! IDs for fields
     INTEGER :: pos_nc(3),cnt_nc(3)         ! Vectors for reading 2D fields
     INTEGER :: dim_obs_p                   ! Number of process-local observations
     INTEGER :: status                      ! Status flag
     INTEGER :: mon			   ! month (mm)
     INTEGER :: day  			   ! day (dd)
+    INTEGER :: assimindex                  ! index in obs file (for assimilation)
     LOGICAL :: no_assim = .FALSE.          ! if we will assimilate
-    REAL, ALLOCATABLE :: obs_field1(:,:,:)    ! Observation field read from file
+    REAL, ALLOCATABLE :: obs_field1(:,:)    ! Observation field read from file
     REAL, ALLOCATABLE :: ice_concen_field(:,:) ! Combination of aicen and vicen
     REAL, ALLOCATABLE :: obs_p(:)             ! PE-local observation vector
     REAL, ALLOCATABLE :: ivar_obs_p(:)        ! PE-local inverse observation error variance
@@ -224,7 +225,7 @@ CONTAINS
     thisobs%ncoord = 2
 
     ! Arrays for aicen and vicen
-    ALLOCATE(obs_field1(nx_global, ny_global, ncat))
+    ALLOCATE(obs_field1(nx_global, ny_global))
 
     ! Temp Code to not assim in first year of model run
 
@@ -256,10 +257,19 @@ CONTAINS
     WRITE(yeart,'(i4.4)') year
     WRITE(montht,'(i2.2)') mon
     WRITE(dayt,'(i2.2)') day
-    WRITE(*,*) "IS IT FIRST DAY?", first_year
-    WRITE(file_ice_concen,'(a)') trim(file_ice_concen)//trim(yeart)//'-'//trim(montht) &
-    //'-'//trim(dayt)//'.nc'
+
+    CALL get_time_index(idate,assimindex)
+    IF (assimindex == -1) THEN
+       no_assim=.true.
+    END IF 
+
+    !WRITE(file_ice_concen,'(a)') trim(file_ice_concen)//trim(yeart)//'-'//trim(montht) &
+    !//'-'//trim(dayt)//'.nc'
+
     WRITE(*,*) 'FILE ICE CONCEN: ', file_ice_concen
+    WRITE(*,*) 'ASSIMDAY: ', idate
+    WRITE(*,*) 'ASSIMINDEX: ', assimindex
+    WRITE(*,*) 'NO ASSIM: ', no_assim
  !  ! We read in fields from a file
     IF (obs_file) THEN
        ! **********************************
@@ -287,20 +297,18 @@ CONTAINS
        ! ******************************************
 
        s=1
-       stat(s) = NF90_INQ_VARID(ncid_in, 'aicen_d', id_3dvar)
+       stat(s) = NF90_INQ_VARID(ncid_in, 'var1', id_2dvar)
 
        ! Read state variable data from file
-       pos_nc = (/ 1, 1, 1 /)
-       cnt_nc = (/ nx_global , ny_global, ncat /)
+       pos_nc = (/  1, 1, assimindex /)
+       cnt_nc = (/  nx_global , ny_global, 1 /)
        s = s + 1
        IF (no_assim .EQV. .FALSE.) THEN
-       stat(s) = NF90_GET_VAR(ncid_in, id_3dvar, obs_field1, start=pos_nc, count=cnt_nc)
+       stat(s) = NF90_GET_VAR(ncid_in, id_2dvar, obs_field1, start=pos_nc, count=cnt_nc)
        ELSE
          DO i=1,nx_global
 	     DO j=1,ny_global
-                DO k=1,ncat
-		   obs_field1(i,j,k)=-1
-                END DO
+		   obs_field1(i,j)=-1
 	     END DO
 	  END DO
        END IF
@@ -330,22 +338,15 @@ CONTAINS
        END DO
        
     ELSE
-       ! obs_field1 is aicen
-       DO k = 1, ncat
-          DO j = 1, ny_global
-             DO i= 1, nx_global
-                obs_field1(i,j,k) = 0.0
-                IF (i >= 45 .AND. i<= 55 .AND. j>=80 .AND.  j<=90) THEN
-                        obs_field1(i,j,1) = 1.0
-                        obs_field1(i,j,2) = 0.0
-                        obs_field1(i,j,3) = 0.0
-                        obs_field1(i,j,4) = 0.0
-                        obs_field1(i,j,5) = 0.0
+!    obs_field1 is aicen
+    DO j = 1, ny_global
+       DO i= 1, nx_global
+          obs_field1(i,j) = 0.0
+             IF (i >= 45 .AND. i<= 55 .AND. j>=80 .AND.  j<=90) THEN
+                obs_field1(i,j) = 1.0
                 END IF
              END DO
-          END DO
        END DO
-
 
     END IF
 
@@ -358,14 +359,11 @@ CONTAINS
     ALLOCATE(ice_concen_field(nx_global,ny_global))
     ice_concen_field=0.0
 
-    DO k = 1, ncat
        DO j = 1, ny_global
           DO i= 1, nx_global
-                ice_concen_field(i,j) = ice_concen_field(i,j) + &
-                  obs_field1(i,j,k)
+                ice_concen_field(i,j) = obs_field1(i,j)
           END DO
        END DO
-    END DO
 
     ! Count physically meaningful observations
     cnt = 0
@@ -669,5 +667,60 @@ CONTAINS
     DEALLOCATE(noise)
 
   END SUBROUTINE add_noise
+
+  SUBROUTINE get_time_index(mydate,loc)
+
+  USE netcdf
+  
+  IMPLICIT NONE
+  !arguments
+  INTEGER, INTENT(in) :: mydate
+  INTEGER, INTENT(out) :: loc
+  !local variables
+  INTEGER :: s, ncid, id_dimt, dimt, i
+  INTEGER :: strt(1), cnt(1)
+  REAL, ALLOCATABLE :: timeValues(:)
+
+  ! initialize loc
+  loc = -1
+
+  ! open file
+
+  s = NF90_OPEN('/storage/silver/cpom/xp904495/SSMI/bt/daily_nhgrid/ssmi_cice.nc',&
+  NF90_NOWRITE, ncid)
+  
+  ! get size of time dimension
+
+  s = NF90_INQ_DIMID(ncid, 'time', id_dimt )
+  s = NF90_INQUIRE_DIMENSION(ncid, id_dimt, len=dimt)
+
+  ! get values of time variables
+
+  ALLOCATE(timevalues(dimt))
+  s = NF90_INQ_VARID(ncid, 'time', id_dimt)
+  strt = (/ 1 /)
+  cnt = (/ dimt /)
+  S = NF90_GET_VAR(ncid, id_dimt, timevalues, start = strt, count = cnt)
+
+  ! find desired index
+
+  DO i=1, dimt
+     IF(INT(timevalues(i)) == mydate) THEN
+     ! loc is the value you want
+     loc = i-1
+     EXIT
+     END IF
+  END DO
+
+  !output if date not found
+  IF (loc==-1) THEN
+     WRITE(*,*) 'NO OBS DATA FOR DATE FOUND'
+  END IF
+
+  !close file
+
+  s = NF90_CLOSE(ncid)
+
+  END SUBROUTINE get_time_index
 
 END MODULE obs_ice_concen_pdafomi

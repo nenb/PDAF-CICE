@@ -265,7 +265,8 @@ SUBROUTINE calc_hi_average()
         END DO
         IF (temp_one > puny .AND. temp_two > puny) THEN
            !hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1) + (temp_one/temp_two)
-           hi_grid_d(i+1,j+1) = temp_one/temp_two !keep for daily average
+           !hi_grid_d(i+1,j+1) = temp_one/temp_two !keep for daily average
+           hi_grid_d(i+1,j+1) = temp_one !keep for assim real obs
         ELSE
 	   !hi_grid_d(i+1,j+1) = hi_grid_d(i+1,j+1)
 	   hi_grid_d(i+1,j+1) = c0 !keep for daily average
@@ -2322,15 +2323,15 @@ SUBROUTINE physics_check()
   END DO
 
   ! Individual category in aicen cannot have value greater than 1
-  DO k=1,ncat
-     DO j = 1,ny_global
-        DO i = 1,nx_global
-           IF (aicen(i+1,j+1,k,1) > c1) THEN
-              aicen(i+1,j+1,k,1) = c1
-           END IF
-        END DO
-     END DO
-  END DO
+!  DO k=1,ncat
+!     DO j = 1,ny_global
+!        DO i = 1,nx_global
+!           IF (aicen(i+1,j+1,k,1) > c1) THEN
+!              aicen(i+1,j+1,k,1) = c1
+!           END IF
+!        END DO
+!     END DO
+!  END DO
 
   ! INSERT DESCRIPTION HERE
   DO k=1,ncat
