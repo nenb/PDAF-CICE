@@ -477,9 +477,12 @@ CONTAINS
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
     DO i=1,dim_obs_p
-       rms_ice_concen = obs_p(i)*0.1 !For NASA TEAM ice concen error est. 5% to 10%
+       WRITE(*,*) 'obs_p: ', obs_p(i)
+       rms_ice_concen = MAX(obs_p(i)*0.1,0.01) !For NASA TEAM ice concen error est. 5% to 10%
+       WRITE(*,*) 'rms_ice_concen: ', rms_ice_concen
        ivar_obs_p(i) = 1.0/(rms_ice_concen*rms_ice_concen)
     END DO
+    !rms_ice_concen = 0.1
     !ivar_obs_p = 1.0/(rms_ice_concen*rms_ice_concen)
 
 ! ****************************************
