@@ -476,8 +476,11 @@ CONTAINS
 ! ****************************************************************
 
     ALLOCATE(ivar_obs_p(dim_obs_p))
-
-    ivar_obs_p = 1.0/(rms_ice_concen*rms_ice_concen)
+    DO i=1,dim_obs_p
+       rms_ice_concen = obs_p(i)*0.1 !For NASA TEAM ice concen error est. 5% to 10%
+       ivar_obs_p(i) = 1.0/(rms_ice_concen*rms_ice_concen)
+    END DO
+    !ivar_obs_p = 1.0/(rms_ice_concen*rms_ice_concen)
 
 ! ****************************************
 ! *** Gather global observation arrays ***
